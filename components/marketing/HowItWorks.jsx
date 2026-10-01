@@ -31,7 +31,7 @@ const STEPS = [
 export function HowItWorks() {
   return (
     <section id="how-it-works" className="py-24 border-b border-border/60 bg-bg">
-      <div className="mx-auto max-w-5xl px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
           <Badge

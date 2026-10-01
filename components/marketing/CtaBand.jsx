@@ -11,7 +11,7 @@ export function CtaBand() {
         className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[250px] bg-accent/15 blur-[100px] rounded-full"
       />
 
-      <div className="relative z-10 mx-auto max-w-4xl px-6">
+      <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-text mb-4">
           Contract answers you can trust, word for word.
         </h2>

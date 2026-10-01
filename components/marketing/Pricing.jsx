@@ -48,7 +48,7 @@ export function Pricing() {
 
   return (
     <section id="pricing" className="py-24 border-b border-border/60 bg-bg">
-      <div className="mx-auto max-w-5xl px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-16">
           <Badge
@@ -67,7 +67,7 @@ export function Pricing() {
         </div>
 
         {/* Pricing Cards Grid (2 cards only) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch max-w-5xl mx-auto">
           {/* Card 1: Free */}
           <div className="relative flex flex-col justify-between rounded-2xl border border-border bg-surface/80 p-8 shadow-xl transition-all hover:border-border-strong">
             <div>

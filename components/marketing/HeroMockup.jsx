@@ -41,11 +41,11 @@ export function HeroMockup() {
   const currentText = FULL_STREAMING_TEXT.slice(0, displayedLength);
 
   return (
-    <section id="product" className="relative mx-auto max-w-6xl px-4 sm:px-6 pt-4 pb-20">
+    <section id="product" className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-4 pb-20">
       {/* Halo Arc Behind Mockup */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2 h-[350px] w-[800px] rounded-[100%] bg-accent/20 blur-[90px] opacity-70"
+        className="pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2 h-[350px] w-[1000px] rounded-[100%] bg-accent/20 blur-[100px] opacity-70"
       />
 
       {/* 3D Perspective Card Container */}

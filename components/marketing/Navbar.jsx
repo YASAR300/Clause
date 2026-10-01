@@ -28,13 +28,13 @@ export function Navbar() {
   }, []);
 
   return (
-    <header className="fixed top-4 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
+    <header className="fixed top-4 inset-x-0 z-50 flex justify-center px-4 sm:px-6 pointer-events-none">
       <nav
         aria-label="Main Navigation"
         className={`pointer-events-auto flex items-center justify-between transition-all duration-300 ease-out border border-border backdrop-blur-xl ${
           scrolled
-            ? "w-full max-w-3xl py-2 px-4 rounded-full bg-surface/85 shadow-2xl shadow-black/50 border-border-strong scale-[0.98]"
-            : "w-full max-w-4xl py-2.5 px-5 rounded-full bg-surface/60 shadow-lg shadow-black/20"
+            ? "w-full max-w-5xl py-2 px-5 rounded-full bg-surface/85 shadow-2xl shadow-black/50 border-border-strong scale-[0.99]"
+            : "w-full max-w-6xl py-2.5 px-6 rounded-full bg-surface/60 shadow-lg shadow-black/20"
         }`}
       >
         <Link

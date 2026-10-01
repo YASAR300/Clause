@@ -28,7 +28,7 @@ export function Hero() {
         />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-4xl px-6 flex flex-col items-center">
+      <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 flex flex-col items-center">
         {/* Verification Pill Badge */}
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/80 px-3.5 py-1 text-xs text-muted backdrop-blur-md shadow-sm mb-8 transition-colors hover:border-border-strong">
           <span className="flex h-1.5 w-1.5 rounded-full bg-verified animate-pulse" />
@@ -38,7 +38,7 @@ export function Hero() {
         </div>
 
         {/* Two-Tone Headline with Gradient Text & Subtle Underline */}
-        <h1 className="text-4xl sm:text-6xl md:text-7xl font-semibold tracking-[-0.035em] text-balance leading-[1.08] mb-6">
+        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-[76px] font-semibold tracking-[-0.035em] text-balance leading-[1.08] mb-6 max-w-5xl">
           <span className="bg-gradient-to-b from-white via-white/95 to-white/60 bg-clip-text text-transparent">
             Contract answers you can check,{" "}
           </span>
@@ -52,7 +52,7 @@ export function Hero() {
         </h1>
 
         {/* Subcopy */}
-        <p className="max-w-2xl text-base sm:text-lg text-muted font-normal leading-relaxed text-balance mb-8">
+        <p className="max-w-3xl text-base sm:text-lg text-muted font-normal leading-relaxed text-balance mb-8">
           Ask questions about any contract, and get answers backed by exact quotes
           that are confirmed in the source text before you see them.
         </p>

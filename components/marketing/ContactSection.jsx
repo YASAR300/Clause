@@ -48,7 +48,7 @@ export function ContactSection() {
 
   return (
     <section id="contact" className="py-24 border-b border-border/60 bg-surface/30">
-      <div className="mx-auto max-w-4xl px-6">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
           {/* Left Narrative */}
           <div className="md:col-span-5 space-y-4">

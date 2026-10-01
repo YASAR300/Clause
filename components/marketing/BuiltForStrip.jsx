@@ -17,7 +17,7 @@ const AUDIENCES = [
 export function BuiltForStrip() {
   return (
     <section className="relative py-12 border-y border-border/60 bg-surface/30">
-      <div className="mx-auto max-w-6xl px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <p className="text-center text-xs font-medium uppercase tracking-wider text-muted/70 mb-8">
           Built for teams who cannot afford hallucinated clauses
         </p>

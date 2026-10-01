@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 export function CoverageHonesty() {
   return (
     <section className="py-20 border-b border-border/60 bg-surface/20">
-      <div className="mx-auto max-w-5xl px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="rounded-2xl border border-border bg-surface/80 p-8 sm:p-12 shadow-xl">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             {/* Left Narrative */}

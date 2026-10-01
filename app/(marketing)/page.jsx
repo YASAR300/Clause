@@ -4,6 +4,9 @@ import { HeroMockup } from "@/components/marketing/HeroMockup";
 import { BuiltForStrip } from "@/components/marketing/BuiltForStrip";
 import { VerificationDemo } from "@/components/marketing/VerificationDemo";
 import { FeatureBento } from "@/components/marketing/FeatureBento";
+import { ComparisonShowcase } from "@/components/marketing/ComparisonShowcase";
+import { CoverageHonesty } from "@/components/marketing/CoverageHonesty";
+import { HowItWorks } from "@/components/marketing/HowItWorks";
 
 export default function MarketingPage() {
   return (
@@ -24,6 +27,9 @@ export default function MarketingPage() {
         <BuiltForStrip />
         <VerificationDemo />
         <FeatureBento />
+        <ComparisonShowcase />
+        <CoverageHonesty />
+        <HowItWorks />
       </main>
     </div>
   );

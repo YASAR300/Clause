@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   FileText,
   Search,
+  X,
   MoreVertical,
   MessageSquare,
   GitCompare,
@@ -60,11 +61,21 @@ function formatBytes(bytes) {
 
 export default function DocumentsPage() {
   const router = useRouter();
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [sortBy, setSortBy] = useState("newest");
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState("table");
+
+  // Debounce search input to avoid race conditions
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput.trim());
+      setPage(1);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Selection
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -95,7 +106,7 @@ export default function DocumentsPage() {
   }, []);
 
   const { documents, total, totalPages, isLoading, mutate } = useDocuments({
-    search,
+    search: debouncedSearch,
     status: statusFilter,
     sort: sortBy,
     page,
@@ -287,70 +298,80 @@ export default function DocumentsPage() {
       />
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 bg-surface/50 border border-border rounded-lg">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 bg-[#121214] border border-[#27272a] rounded-lg">
         <div className="flex items-center gap-2 flex-1 max-w-md">
           <div className="relative w-full">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted pointer-events-none" />
-            <Input
-              type="search"
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#71717a] pointer-events-none" />
+            <input
+              type="text"
               placeholder="Search contracts by name..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              className="h-8 pl-8 text-xs bg-bg/50 border-border focus:border-accent/40"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="h-8 w-full pl-8 pr-8 text-xs rounded-md bg-[#18181b] text-[#ededed] border border-[#27272a] placeholder:text-[#71717a] focus:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/40 transition-colors"
             />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchInput("");
+                  setDebouncedSearch("");
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#71717a] hover:text-[#ededed] p-0.5 rounded focus:outline-none"
+                aria-label="Clear search"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Status filter */}
-          <div className="flex items-center gap-1.5 bg-bg/50 border border-border rounded-md px-2 py-1">
-            <Filter className="h-3 w-3 text-muted shrink-0" />
+          <div className="flex items-center gap-1.5 bg-[#18181b] border border-[#27272a] rounded-md px-2 py-1">
+            <Filter className="h-3 w-3 text-[#71717a] shrink-0" />
             <select
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="bg-transparent text-xs text-text border-none focus:outline-none cursor-pointer pr-1"
+              className="bg-transparent text-xs text-[#ededed] border-none focus:outline-none cursor-pointer pr-1"
               aria-label="Filter documents by status"
             >
-              <option value="ALL" className="bg-surface text-text">All statuses</option>
-              <option value="READY" className="bg-surface text-text">Ready</option>
-              <option value="EXTRACTING" className="bg-surface text-text">Processing</option>
-              <option value="NEEDS_OCR" className="bg-surface text-text">Needs OCR</option>
-              <option value="FAILED" className="bg-surface text-text">Failed</option>
+              <option value="ALL" className="bg-[#18181b] text-[#ededed]">All statuses</option>
+              <option value="READY" className="bg-[#18181b] text-[#ededed]">Ready</option>
+              <option value="EXTRACTING" className="bg-[#18181b] text-[#ededed]">Processing</option>
+              <option value="NEEDS_OCR" className="bg-[#18181b] text-[#ededed]">Needs OCR</option>
+              <option value="FAILED" className="bg-[#18181b] text-[#ededed]">Failed</option>
             </select>
           </div>
 
           {/* Sort order */}
-          <div className="flex items-center gap-1.5 bg-bg/50 border border-border rounded-md px-2 py-1">
-            <ArrowUpDown className="h-3 w-3 text-muted shrink-0" />
+          <div className="flex items-center gap-1.5 bg-[#18181b] border border-[#27272a] rounded-md px-2 py-1">
+            <ArrowUpDown className="h-3 w-3 text-[#71717a] shrink-0" />
             <select
               value={sortBy}
               onChange={(e) => {
                 setSortBy(e.target.value);
                 setPage(1);
               }}
-              className="bg-transparent text-xs text-text border-none focus:outline-none cursor-pointer pr-1"
+              className="bg-transparent text-xs text-[#ededed] border-none focus:outline-none cursor-pointer pr-1"
               aria-label="Sort documents"
             >
-              <option value="newest" className="bg-surface text-text">Newest</option>
-              <option value="oldest" className="bg-surface text-text">Oldest</option>
-              <option value="name" className="bg-surface text-text">Name</option>
-              <option value="size" className="bg-surface text-text">Size</option>
+              <option value="newest" className="bg-[#18181b] text-[#ededed]">Newest</option>
+              <option value="oldest" className="bg-[#18181b] text-[#ededed]">Oldest</option>
+              <option value="name" className="bg-[#18181b] text-[#ededed]">Name</option>
+              <option value="size" className="bg-[#18181b] text-[#ededed]">Size</option>
             </select>
           </div>
 
           {/* View toggle */}
-          <div className="flex items-center border border-border rounded-md bg-bg/50 p-0.5">
+          <div className="flex items-center border border-[#27272a] rounded-md bg-[#18181b] p-0.5">
             <button
               type="button"
               onClick={() => setViewMode("table")}
               className={`p-1 rounded text-xs transition-colors ${
-                viewMode === "table" ? "bg-surface-hover text-text" : "text-muted hover:text-text"
+                viewMode === "table" ? "bg-[#27272a] text-[#ededed]" : "text-[#71717a] hover:text-[#ededed]"
               }`}
               aria-label="Table view"
             >
@@ -360,7 +381,7 @@ export default function DocumentsPage() {
               type="button"
               onClick={() => setViewMode("grid")}
               className={`p-1 rounded text-xs transition-colors ${
-                viewMode === "grid" ? "bg-surface-hover text-text" : "text-muted hover:text-text"
+                viewMode === "grid" ? "bg-[#27272a] text-[#ededed]" : "text-[#71717a] hover:text-[#ededed]"
               }`}
               aria-label="Grid view"
             >
@@ -378,15 +399,21 @@ export default function DocumentsPage() {
         </div>
       ) : documents.length === 0 ? (
         <EmptyState
-          title={search ? "No matching contracts" : "No contracts in library"}
+          title={debouncedSearch ? "No matching contracts" : "No contracts in library"}
           description={
-            search
-              ? `No contracts match "${search}". Try adjusting your search query or status filter.`
+            debouncedSearch
+              ? `No contracts match "${debouncedSearch}". Try adjusting your search query or status filter.`
               : "Upload PDF or DOCX agreements to begin conversational question answering with word-for-word citations."
           }
           primaryAction={
-            search
-              ? { label: "Clear search", onClick: () => setSearch("") }
+            debouncedSearch
+              ? {
+                  label: "Clear search",
+                  onClick: () => {
+                    setSearchInput("");
+                    setDebouncedSearch("");
+                  },
+                }
               : { label: "Upload contract", onClick: () => setShowUploadModal(true) }
           }
         />

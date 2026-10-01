@@ -7,6 +7,7 @@ import useSWR from "swr";
 import {
   MessageSquare,
   Search,
+  X,
   Plus,
   MoreVertical,
   Edit2,
@@ -46,7 +47,16 @@ const fetcher = (url) => fetch(url).then((res) => res.json());
 
 export default function ChatsPage() {
   const router = useRouter();
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput.trim());
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Dialogs
   const [renameTarget, setRenameTarget] = useState(null);
@@ -62,7 +72,7 @@ export default function ChatsPage() {
 
   // SWR queries
   const { data, error, isLoading, mutate } = useSWR(
-    `/api/conversations${search ? `?search=${encodeURIComponent(search)}` : ""}`,
+    `/api/conversations${debouncedSearch ? `?search=${encodeURIComponent(debouncedSearch)}` : ""}`,
     fetcher
   );
 
@@ -176,16 +186,29 @@ export default function ChatsPage() {
       />
 
       {/* Search Toolbar */}
-      <div className="flex items-center justify-between gap-3 p-2 bg-surface/50 border border-border rounded-lg max-w-md">
+      <div className="flex items-center justify-between gap-3 p-2 bg-[#121214] border border-[#27272a] rounded-lg max-w-md">
         <div className="relative w-full">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted pointer-events-none" />
-          <Input
-            type="search"
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#71717a] pointer-events-none" />
+          <input
+            type="text"
             placeholder="Search conversations by title..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-8 pl-8 text-xs bg-bg/50 border-border focus:border-accent/40"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="h-8 w-full pl-8 pr-8 text-xs rounded-md bg-[#18181b] text-[#ededed] border border-[#27272a] placeholder:text-[#71717a] focus:outline-none focus:border-[#3b82f6] focus:ring-1 focus:ring-[#3b82f6]/40 transition-colors"
           />
+          {searchInput && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchInput("");
+                setDebouncedSearch("");
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#71717a] hover:text-[#ededed] p-0.5 rounded focus:outline-none"
+              aria-label="Clear search"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -197,15 +220,21 @@ export default function ChatsPage() {
         </div>
       ) : conversations.length === 0 ? (
         <EmptyState
-          title={search ? "No matching conversations" : "No conversations yet"}
+          title={debouncedSearch ? "No matching conversations" : "No conversations yet"}
           description={
-            search
-              ? `No conversations match "${search}". Try another query.`
+            debouncedSearch
+              ? `No conversations match "${debouncedSearch}". Try another query.`
               : "Start a conversation with one or more contracts to ask questions with ground-truth citations."
           }
           primaryAction={
-            search
-              ? { label: "Clear search", onClick: () => setSearch("") }
+            debouncedSearch
+              ? {
+                  label: "Clear search",
+                  onClick: () => {
+                    setSearchInput("");
+                    setDebouncedSearch("");
+                  },
+                }
               : { label: "Start your first chat", onClick: () => setShowNewChatModal(true) }
           }
         />

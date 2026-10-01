@@ -7,6 +7,7 @@ import { FeatureBento } from "@/components/marketing/FeatureBento";
 import { ComparisonShowcase } from "@/components/marketing/ComparisonShowcase";
 import { CoverageHonesty } from "@/components/marketing/CoverageHonesty";
 import { HowItWorks } from "@/components/marketing/HowItWorks";
+import { Pricing } from "@/components/marketing/Pricing";
 
 export default function MarketingPage() {
   return (
@@ -30,6 +31,7 @@ export default function MarketingPage() {
         <ComparisonShowcase />
         <CoverageHonesty />
         <HowItWorks />
+        <Pricing />
       </main>
     </div>
   );

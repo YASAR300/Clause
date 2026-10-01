@@ -2,6 +2,7 @@ import { Navbar } from "@/components/marketing/Navbar";
 import { Hero } from "@/components/marketing/Hero";
 import { HeroMockup } from "@/components/marketing/HeroMockup";
 import { BuiltForStrip } from "@/components/marketing/BuiltForStrip";
+import { VerificationDemo } from "@/components/marketing/VerificationDemo";
 
 export default function MarketingPage() {
   return (
@@ -20,6 +21,7 @@ export default function MarketingPage() {
         <Hero />
         <HeroMockup />
         <BuiltForStrip />
+        <VerificationDemo />
       </main>
     </div>
   );

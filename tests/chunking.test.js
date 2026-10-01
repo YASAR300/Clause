@@ -5,6 +5,7 @@ import {
   chunkContract,
   TARGET_CHUNK_CHARS,
   MAX_CHUNK_CHARS,
+  OVERLAP_CHARS,
 } from "@/lib/chunking";
 
 describe("Heading Extraction", () => {
@@ -18,14 +19,23 @@ describe("Heading Extraction", () => {
     expect(extractHeading("4.1.2 Specific Performance")).toBe(
       "4.1.2 Specific Performance"
     );
+    expect(extractHeading("  10. Governing Law  ")).toBe(
+      "10. Governing Law"
+    );
   });
 
   it("detects Article, Section, Clause, Schedule, and Exhibit headings", () => {
     expect(extractHeading("ARTICLE IV - REPRESENTATIONS AND WARRANTIES")).toBe(
       "ARTICLE IV - REPRESENTATIONS AND WARRANTIES"
     );
+    expect(extractHeading("ARTICLE XIV: INDEMNITY")).toBe(
+      "ARTICLE XIV: INDEMNITY"
+    );
     expect(extractHeading("Section 5. Confidentiality")).toBe(
       "Section 5. Confidentiality"
+    );
+    expect(extractHeading("Section II. Consideration")).toBe(
+      "Section II. Consideration"
     );
     expect(extractHeading("Clause 9. Termination")).toBe(
       "Clause 9. Termination"
@@ -39,6 +49,9 @@ describe("Heading Extraction", () => {
     expect(extractHeading("APPENDIX C: SERVICE LEVEL AGREEMENT")).toBe(
       "APPENDIX C: SERVICE LEVEL AGREEMENT"
     );
+    expect(extractHeading("ANNEX B - SECURITY STANDARDS")).toBe(
+      "ANNEX B - SECURITY STANDARDS"
+    );
   });
 
   it("detects ALL-CAPS lines as headings", () => {
@@ -47,6 +60,9 @@ describe("Heading Extraction", () => {
     );
     expect(extractHeading("LIMITATION OF LIABILITY")).toBe(
       "LIMITATION OF LIABILITY"
+    );
+    expect(extractHeading("CONFIDENTIALITY AND INTELLECTUAL PROPERTY")).toBe(
+      "CONFIDENTIALITY AND INTELLECTUAL PROPERTY"
     );
   });
 
@@ -62,6 +78,7 @@ describe("Heading Extraction", () => {
       )
     ).toBeNull();
     expect(extractHeading("")).toBeNull();
+    expect(extractHeading("   ")).toBeNull();
   });
 });
 
@@ -124,16 +141,29 @@ describe("Chunking Invariant & Contract Boundaries", () => {
     const pages = [{ pageNumber: 1, startOffset: 0, endOffset: fullText.length }];
     const chunks = chunkContract(fullText, pages, "doc-test");
 
-    // The second chunk should start at Section 2
     expect(chunks.length).toBe(2);
     expect(chunks[0].heading).toBe("Section 1. Confidentiality");
     expect(chunks[1].heading).toBe("Section 2. Non-Disclosure");
     expect(chunks[1].text.startsWith("Section 2. Non-Disclosure")).toBe(true);
   });
 
+  it("handles contracts without headings by splitting on paragraph breaks", () => {
+    const para1 = "This is a long introductory preamble that explains background without any formal numbering. ".repeat(40);
+    const para2 = "\n\nFurther background details regarding the contractual parties and relationship. ".repeat(40);
+    const fullText = para1 + para2;
+
+    const pages = [{ pageNumber: 1, startOffset: 0, endOffset: fullText.length }];
+    const chunks = chunkContract(fullText, pages, "doc-no-headings");
+
+    expect(chunks.length).toBeGreaterThanOrEqual(2);
+    for (const chunk of chunks) {
+      expect(fullText.slice(chunk.startOffset, chunk.endOffset)).toBe(chunk.text);
+    }
+  });
+
   it("handles mid-clause splits with overlap when clause exceeds max chunk size", () => {
     const longClauseHeader = "Article IX. Environmental Liabilities and Indemnities\n";
-    const longBody = "The Purchaser and Seller agree that environmental compliance must meet all state and federal statutory requirements. ".repeat(80); // ~9500 chars
+    const longBody = "The Purchaser and Seller agree that environmental compliance must meet all state and federal statutory requirements. ".repeat(80);
     const fullText = longClauseHeader + longBody;
 
     const pages = [{ pageNumber: 1, startOffset: 0, endOffset: fullText.length }];
@@ -147,5 +177,11 @@ describe("Chunking Invariant & Contract Boundaries", () => {
 
     // Mid-clause split must have overlap: chunk 1 startOffset < chunk 0 endOffset
     expect(chunks[1].startOffset).toBeLessThan(chunks[0].endOffset);
+  });
+
+  it("handles empty or blank document text gracefully", () => {
+    expect(chunkContract("", [])).toEqual([]);
+    expect(chunkContract("   \n\n  ", [])).toEqual([]);
+    expect(chunkContract(null, [])).toEqual([]);
   });
 });

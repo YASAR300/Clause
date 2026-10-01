@@ -1,5 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
+import { sniffFileType, validateExtension } from "@/lib/extract/sniff";
+import { processDocument } from "@/lib/extract/pipeline";
+import { completeJob, failJob } from "@/lib/jobs";
+
+export const maxDuration = 300;
 
 export async function POST(request) {
   try {
@@ -14,15 +19,13 @@ export async function POST(request) {
     }
 
     const name = file.name;
-    const isPdf = name.toLowerCase().endsWith(".pdf");
-    const isDocx = name.toLowerCase().endsWith(".docx");
-
-    if (!isPdf && !isDocx) {
+    const extCheck = validateExtension(name);
+    if (!extCheck.valid) {
       return NextResponse.json(
         {
           error: {
-            code: "INVALID_FILE_TYPE",
-            message: "Only PDF and DOCX files are supported",
+            code: "INVALID_EXTENSION",
+            message: extCheck.error,
           },
         },
         { status: 400 }
@@ -31,50 +34,86 @@ export async function POST(request) {
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const textContent = `DOCUMENT: ${name}\n\nThis agreement contains standard legal terms and clauses ingested for verification.\n\nSection 1. Definitions and Obligations.\nEach party agrees to comply with applicable contractual stipulations.\n\nSection 2. Governing Law.\nThis agreement is governed by the laws of the jurisdiction specified in the order form.`;
 
-    // Persist Document record
+    // Sniff magic bytes
+    const sniffResult = sniffFileType(buffer, name);
+    if (!sniffResult.valid) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "INVALID_MAGIC_BYTES",
+            message: sniffResult.reason,
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    let blobUrl = "";
+    let blobPathname = `contracts/${Date.now()}_${name}`;
+
+    // Upload to Vercel Blob if valid token configured
+    const hasValidBlobToken =
+      process.env.BLOB_READ_WRITE_TOKEN &&
+      !process.env.BLOB_READ_WRITE_TOKEN.includes("local_dev");
+
+    if (hasValidBlobToken) {
+      try {
+        const { put } = await import("@vercel/blob");
+        const blob = await put(blobPathname, buffer, {
+          access: "public",
+          contentType: file.type || "application/octet-stream",
+        });
+        blobUrl = blob.url;
+        blobPathname = blob.pathname;
+      } catch (err) {
+        console.warn("Vercel blob upload failed, falling back to data URL:", err.message);
+      }
+    }
+
+    if (!blobUrl) {
+      // Data URL fallback for local / offline dev
+      const mime = file.type || (extCheck.ext === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      blobUrl = `data:${mime};base64,${buffer.toString("base64")}`;
+    }
+
+    // Create Document record
     const document = await db.document.create({
       data: {
         name,
-        mimeType: file.type || (isPdf ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+        mimeType: file.type || (extCheck.ext === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
         sizeBytes: buffer.length,
-        blobUrl: `/api/documents/download?name=${encodeURIComponent(name)}`,
-        blobPathname: `uploads/${Date.now()}_${name}`,
-        status: "READY",
-        statusDetail: "Ingested successfully",
-        progress: 100,
-        pageCount: 1,
-        charCount: textContent.length,
-        fullText: textContent,
-        emptyPages: [],
-        versionLabel: "v1.0",
+        blobUrl,
+        blobPathname,
+        status: "QUEUED",
+        statusDetail: "Queued for page extraction",
+        progress: 0,
+        fullText: "",
       },
     });
 
-    // Create DocumentPage
-    await db.documentPage.create({
+    // Create background Job
+    const job = await db.job.create({
       data: {
-        documentId: document.id,
-        pageNumber: 1,
-        text: textContent,
-        startOffset: 0,
-        endOffset: textContent.length,
+        type: "DOCUMENT_PROCESS",
+        payload: { documentId: document.id },
+        status: "QUEUED",
       },
     });
 
-    // Create Chunk
-    await db.chunk.create({
-      data: {
-        documentId: document.id,
-        heading: "1. Agreement Clauses",
-        text: textContent,
-        pageStart: 1,
-        pageEnd: 1,
-        startOffset: 0,
-        endOffset: textContent.length,
-        ordinal: 0,
-      },
+    // Kick background extraction via after()
+    after(async () => {
+      try {
+        await db.job.update({
+          where: { id: job.id },
+          data: { status: "RUNNING", lockedAt: new Date(), attempts: 1 },
+        });
+        await processDocument(document.id);
+        await completeJob(job.id);
+      } catch (err) {
+        console.error(`Background extraction error for doc ${document.id}:`, err);
+        await failJob(job.id, err.message);
+      }
     });
 
     return NextResponse.json({
@@ -83,8 +122,9 @@ export async function POST(request) {
         id: document.id,
         name: document.name,
         sizeBytes: document.sizeBytes,
-        pageCount: document.pageCount,
+        status: document.status,
       },
+      jobId: job.id,
     });
   } catch (error) {
     return NextResponse.json(

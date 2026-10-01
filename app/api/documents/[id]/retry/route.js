@@ -1,5 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
+import { processDocument } from "@/lib/extract/pipeline";
+import { completeJob, failJob } from "@/lib/jobs";
+
+export const maxDuration = 300;
 
 export async function POST(_request, { params }) {
   try {
@@ -23,12 +27,26 @@ export async function POST(_request, { params }) {
     });
 
     // Create a job for the pipeline
-    await db.job.create({
+    const job = await db.job.create({
       data: {
         type: "DOCUMENT_PROCESS",
         payload: { documentId: id },
         status: "QUEUED",
       },
+    });
+
+    after(async () => {
+      try {
+        await db.job.update({
+          where: { id: job.id },
+          data: { status: "RUNNING", lockedAt: new Date(), attempts: 1 },
+        });
+        await processDocument(id);
+        await completeJob(job.id);
+      } catch (err) {
+        console.error(`Retry processing failed for doc ${id}:`, err);
+        await failJob(job.id, err.message);
+      }
     });
 
     return NextResponse.json({ ok: true, document: updated });

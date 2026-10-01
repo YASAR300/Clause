@@ -1,5 +1,29 @@
+import Link from "next/link";
 import { FileText, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+function renderAction(action, defaultVariant = "default") {
+  if (!action) return null;
+  if (typeof action === "object" && "label" in action) {
+    if (action.href) {
+      return (
+        <Button asChild variant={action.variant || defaultVariant} size="sm">
+          <Link href={action.href}>{action.label}</Link>
+        </Button>
+      );
+    }
+    return (
+      <Button
+        variant={action.variant || defaultVariant}
+        size="sm"
+        onClick={action.onClick}
+      >
+        {action.label}
+      </Button>
+    );
+  }
+  return action;
+}
 
 export function EmptyState({
   icon: Icon = FileText,
@@ -29,8 +53,8 @@ export function EmptyState({
 
       {(primaryAction || secondaryAction) && (
         <div className="flex flex-wrap items-center justify-center gap-3">
-          {primaryAction}
-          {secondaryAction}
+          {renderAction(primaryAction, "default")}
+          {renderAction(secondaryAction, "outline")}
         </div>
       )}
     </div>

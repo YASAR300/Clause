@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
@@ -35,6 +35,11 @@ export default function DashboardPage() {
   const [sampleLoading, setSampleLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Trigger background job sweep on load
+  useEffect(() => {
+    fetch("/api/jobs/sweep").catch(() => {});
+  }, []);
 
   // Time-of-day greeting
   const getGreeting = () => {

@@ -83,8 +83,9 @@ export default function DocumentsPage() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
 
-  // Auto-open upload modal if ?upload=1 query param exists
+  // Auto-open upload modal if ?upload=1 query param exists and trigger sweep
   useEffect(() => {
+    fetch("/api/jobs/sweep").catch(() => {});
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       if (params.get("upload") === "1") {
@@ -461,7 +462,11 @@ export default function DocumentsPage() {
                         </div>
                       </td>
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <StatusBadge status={doc.status} progress={doc.progress} />
+                        <StatusBadge
+                          status={doc.status}
+                          progress={doc.progress}
+                          statusDetail={doc.statusDetail}
+                        />
                       </td>
                       <td className="py-3 px-3 text-muted font-mono whitespace-nowrap">
                         {doc.pageCount ? `${doc.pageCount} p.` : "—"}
@@ -602,7 +607,11 @@ export default function DocumentsPage() {
                           <Square className="h-4 w-4 text-muted/60" />
                         )}
                       </button>
-                      <StatusBadge status={doc.status} progress={doc.progress} />
+                      <StatusBadge
+                        status={doc.status}
+                        progress={doc.progress}
+                        statusDetail={doc.statusDetail}
+                      />
                     </div>
 
                     <DropdownMenu>

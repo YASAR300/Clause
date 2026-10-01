@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/marketing/Navbar";
 import { Hero } from "@/components/marketing/Hero";
+import { HeroMockup } from "@/components/marketing/HeroMockup";
 import { BuiltForStrip } from "@/components/marketing/BuiltForStrip";
 
 export default function MarketingPage() {
@@ -17,6 +18,7 @@ export default function MarketingPage() {
 
       <main className="relative z-10">
         <Hero />
+        <HeroMockup />
         <BuiltForStrip />
       </main>
     </div>

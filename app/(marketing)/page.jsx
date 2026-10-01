@@ -8,6 +8,10 @@ import { ComparisonShowcase } from "@/components/marketing/ComparisonShowcase";
 import { CoverageHonesty } from "@/components/marketing/CoverageHonesty";
 import { HowItWorks } from "@/components/marketing/HowItWorks";
 import { Pricing } from "@/components/marketing/Pricing";
+import { FaqSection } from "@/components/marketing/FaqSection";
+import { ContactSection } from "@/components/marketing/ContactSection";
+import { CtaBand } from "@/components/marketing/CtaBand";
+import { Footer } from "@/components/marketing/Footer";
 
 export default function MarketingPage() {
   return (
@@ -32,7 +36,12 @@ export default function MarketingPage() {
         <CoverageHonesty />
         <HowItWorks />
         <Pricing />
+        <FaqSection />
+        <ContactSection />
+        <CtaBand />
       </main>
+
+      <Footer />
     </div>
   );
 }

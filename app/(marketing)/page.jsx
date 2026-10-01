@@ -3,6 +3,7 @@ import { Hero } from "@/components/marketing/Hero";
 import { HeroMockup } from "@/components/marketing/HeroMockup";
 import { BuiltForStrip } from "@/components/marketing/BuiltForStrip";
 import { VerificationDemo } from "@/components/marketing/VerificationDemo";
+import { FeatureBento } from "@/components/marketing/FeatureBento";
 
 export default function MarketingPage() {
   return (
@@ -22,6 +23,7 @@ export default function MarketingPage() {
         <HeroMockup />
         <BuiltForStrip />
         <VerificationDemo />
+        <FeatureBento />
       </main>
     </div>
   );

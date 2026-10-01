@@ -40,20 +40,36 @@ export async function GET(_request, { params }) {
     }
 
     // Remote blob URL
-    const blobResponse = await fetch(doc.blobUrl);
-    if (!blobResponse.ok) {
+    let fileBuffer = null;
+    let contentType = doc.mimeType || "application/octet-stream";
+
+    try {
+      const blobResponse = await fetch(doc.blobUrl);
+      if (blobResponse.ok) {
+        contentType = blobResponse.headers.get("content-type") || contentType;
+        fileBuffer = Buffer.from(await blobResponse.arrayBuffer());
+      } else if (doc.blobPathname && doc.blobUrl.includes("cloudinary.com")) {
+        const { downloadFromCloudinaryArchive } = await import("@/lib/storage/cloudinary");
+        fileBuffer = await downloadFromCloudinaryArchive(doc.blobPathname);
+      }
+    } catch {
+      if (doc.blobPathname && doc.blobUrl.includes("cloudinary.com")) {
+        const { downloadFromCloudinaryArchive } = await import("@/lib/storage/cloudinary");
+        fileBuffer = await downloadFromCloudinaryArchive(doc.blobPathname);
+      }
+    }
+
+    if (!fileBuffer) {
       return NextResponse.json(
         { error: { code: "FILE_FETCH_ERROR", message: "Could not stream file from storage" } },
         { status: 502 }
       );
     }
 
-    const contentType =
-      blobResponse.headers.get("content-type") || doc.mimeType || "application/octet-stream";
-
-    return new Response(blobResponse.body, {
+    return new Response(fileBuffer, {
       headers: {
         "Content-Type": contentType,
+        "Content-Length": String(fileBuffer.length),
         "Content-Disposition": `inline; filename="${encodeURIComponent(doc.name)}"`,
         "Cache-Control": "public, max-age=3600",
       },

@@ -1,0 +1,271 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum DocumentStatus {
+  UPLOADING
+  QUEUED
+  EXTRACTING
+  INDEXING
+  READY
+  NEEDS_OCR
+  FAILED
+}
+
+enum ConversationMode {
+  STANDARD
+  AGENT
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+enum MessageStatus {
+  STREAMING
+  COMPLETE
+  STOPPED
+  ERROR
+}
+
+enum ComparisonStatus {
+  QUEUED
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum ChangeType {
+  ADDED
+  REMOVED
+  MODIFIED
+  MOVED
+}
+
+enum ChangeSignificance {
+  CRITICAL
+  MAJOR
+  MINOR
+  COSMETIC
+  UNREVIEWED
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+model Document {
+  id                    String                 @id @default(uuid())
+  name                  String
+  mimeType              String
+  sizeBytes             Int
+  blobUrl               String
+  blobPathname          String
+  status                DocumentStatus         @default(UPLOADING)
+  statusDetail          String?
+  progress              Int                    @default(0)
+  pageCount             Int?
+  charCount             Int                    @default(0)
+  fullText              String                 @db.Text
+  emptyPages            Int[]                  @default([])
+  versionLabel          String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  pages                 DocumentPage[]
+  chunks                Chunk[]
+  conversationDocuments ConversationDocument[]
+  citations             Citation[]
+  baseComparisons       Comparison[]           @relation("BaseDocument")
+  revisedComparisons    Comparison[]           @relation("RevisedDocument")
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model DocumentPage {
+  id          String   @id @default(uuid())
+  documentId  String
+  pageNumber  Int
+  text        String   @db.Text
+  startOffset Int
+  endOffset   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, pageNumber])
+  @@index([documentId, startOffset, endOffset])
+}
+
+model Chunk {
+  id          String   @id @default(uuid())
+  documentId  String
+  ordinal     Int
+  text        String   @db.Text
+  startOffset Int
+  endOffset   Int
+  pageStart   Int
+  pageEnd     Int
+  heading     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, ordinal])
+  @@index([documentId, startOffset, endOffset])
+}
+
+model Conversation {
+  id        String                 @id @default(uuid())
+  title     String
+  mode      ConversationMode       @default(STANDARD)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  documents ConversationDocument[]
+  messages  Message[]
+
+  @@index([createdAt])
+}
+
+model ConversationDocument {
+  id             String       @id @default(uuid())
+  conversationId String
+  documentId     String
+  label          String?
+  createdAt      DateTime     @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  document       Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, documentId])
+  @@index([conversationId])
+  @@index([documentId])
+}
+
+model Message {
+  id             String        @id @default(uuid())
+  conversationId String
+  role           MessageRole
+  content        String        @db.Text
+  status         MessageStatus @default(COMPLETE)
+  coverage       Json?
+  toolTrace      Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  citations      Citation[]
+
+  @@index([conversationId, createdAt])
+}
+
+model Citation {
+  id            String   @id @default(uuid())
+  messageId     String
+  documentId    String
+  ordinal       Int
+  quoteText     String   @db.Text
+  verified      Boolean  @default(false)
+  matchCount    Int      @default(0)
+  startOffset   Int
+  endOffset     Int
+  pageStart     Int
+  pageEnd       Int
+  allMatches    Json
+  failureReason String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  message       Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([messageId, ordinal])
+  @@index([documentId])
+  @@index([verified])
+}
+
+model Comparison {
+  id                String             @id @default(uuid())
+  baseDocumentId    String
+  revisedDocumentId String
+  status            ComparisonStatus   @default(QUEUED)
+  summary           Json?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  baseDocument      Document           @relation("BaseDocument", fields: [baseDocumentId], references: [id], onDelete: Cascade)
+  revisedDocument   Document           @relation("RevisedDocument", fields: [revisedDocumentId], references: [id], onDelete: Cascade)
+  changes           ComparisonChange[]
+
+  @@index([baseDocumentId])
+  @@index([revisedDocumentId])
+  @@index([createdAt])
+}
+
+model ComparisonChange {
+  id           String             @id @default(uuid())
+  comparisonId String
+  changeType   ChangeType
+  significance ChangeSignificance @default(UNREVIEWED)
+  category     String
+  heading      String?
+  baseText     String?            @db.Text
+  revisedText  String?            @db.Text
+  baseStart    Int?
+  revisedStart Int?
+  summary      String             @db.Text
+  whyItMatters String             @db.Text
+  facts        Json?
+  position     Int                @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  comparison   Comparison         @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+
+  @@index([comparisonId, position])
+  @@index([changeType])
+  @@index([significance])
+}
+
+model Job {
+  id        String    @id @default(uuid())
+  type      String
+  payload   Json
+  status    JobStatus @default(QUEUED)
+  attempts  Int       @default(0)
+  lastError String?   @db.Text
+  lockedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([status, type])
+  @@index([createdAt])
+}
+
+model WaitlistEntry {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+}

@@ -52,27 +52,41 @@ export async function POST(request) {
     let blobUrl = "";
     let blobPathname = `contracts/${Date.now()}_${name}`;
 
-    // Upload to Vercel Blob if valid token configured
-    const hasValidBlobToken =
-      process.env.BLOB_READ_WRITE_TOKEN &&
-      !process.env.BLOB_READ_WRITE_TOKEN.includes("local_dev");
-
-    if (hasValidBlobToken) {
+    // 1. Upload to Cloudinary (reliable live storage for contracts)
+    if (process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET) {
       try {
-        const { put } = await import("@vercel/blob");
-        const blob = await put(blobPathname, buffer, {
-          access: "public",
-          contentType: file.type || "application/octet-stream",
-        });
-        blobUrl = blob.url;
-        blobPathname = blob.pathname;
-      } catch (err) {
-        console.warn("Vercel blob upload failed, falling back to data URL:", err.message);
+        const { uploadToCloudinary } = await import("@/lib/storage/cloudinary");
+        const cloudRes = await uploadToCloudinary(buffer, name);
+        blobUrl = cloudRes.url;
+        blobPathname = cloudRes.pathname;
+      } catch (cloudErr) {
+        console.warn("Cloudinary upload error, checking Vercel Blob fallback:", cloudErr?.message);
       }
     }
 
+    // 2. Upload to Vercel Blob if Cloudinary didn't complete
     if (!blobUrl) {
-      // Data URL fallback for local / offline dev
+      const hasValidBlobToken =
+        process.env.BLOB_READ_WRITE_TOKEN &&
+        !process.env.BLOB_READ_WRITE_TOKEN.includes("local_dev");
+
+      if (hasValidBlobToken) {
+        try {
+          const { put } = await import("@vercel/blob");
+          const blob = await put(blobPathname, buffer, {
+            access: "public",
+            contentType: file.type || "application/octet-stream",
+          });
+          blobUrl = blob.url;
+          blobPathname = blob.pathname;
+        } catch (err) {
+          console.warn("Vercel blob upload failed, falling back to data URL:", err.message);
+        }
+      }
+    }
+
+    // 3. Data URL fallback for local / offline dev
+    if (!blobUrl) {
       const mime = file.type || (extCheck.ext === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
       blobUrl = `data:${mime};base64,${buffer.toString("base64")}`;
     }

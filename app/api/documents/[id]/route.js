@@ -84,8 +84,18 @@ export async function DELETE(_request, { params }) {
       );
     }
 
+    // Try deleting from Cloudinary if stored there
+    if (doc.blobPathname && doc.blobUrl?.includes("cloudinary.com")) {
+      try {
+        const { deleteFromCloudinary } = await import("@/lib/storage/cloudinary");
+        await deleteFromCloudinary(doc.blobPathname);
+      } catch (cloudErr) {
+        console.warn("Cloudinary file deletion skipped/failed:", cloudErr?.message);
+      }
+    }
+
     // Try deleting from Vercel Blob if URL is present and token configured
-    if (doc.blobUrl && process.env.BLOB_READ_WRITE_TOKEN) {
+    if (doc.blobUrl && process.env.BLOB_READ_WRITE_TOKEN && !doc.blobUrl.includes("cloudinary.com")) {
       try {
         const { del } = await import("@vercel/blob");
         await del(doc.blobUrl);

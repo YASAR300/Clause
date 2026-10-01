@@ -42,6 +42,8 @@ export async function GET() {
         comparisonCount: compCount,
       },
       blobStorageConfigured: !!process.env.BLOB_READ_WRITE_TOKEN,
+      cloudinaryConfigured: !!(process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET),
+      storageProvider: "Cloudinary CDN",
     });
   } catch (error) {
     return NextResponse.json(

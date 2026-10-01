@@ -25,15 +25,30 @@ export async function POST(request) {
       );
     }
 
-    // Collect all blob URLs first
+    // Collect all documents to remove from Cloudinary & Blob
     const docs = await db.document.findMany({
-      select: { blobUrl: true },
+      select: { blobUrl: true, blobPathname: true },
     });
 
+    // 1. Clean Cloudinary assets
+    for (const d of docs) {
+      if (d.blobPathname && d.blobUrl?.includes("cloudinary.com")) {
+        try {
+          const { deleteFromCloudinary } = await import("@/lib/storage/cloudinary");
+          await deleteFromCloudinary(d.blobPathname);
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    // 2. Clean Vercel Blob assets
     if (process.env.BLOB_READ_WRITE_TOKEN) {
       try {
         const { del } = await import("@vercel/blob");
-        const urls = docs.map((d) => d.blobUrl).filter(Boolean);
+        const urls = docs
+          .map((d) => d.blobUrl)
+          .filter((url) => url && !url.includes("cloudinary.com"));
         if (urls.length > 0) {
           await del(urls);
         }

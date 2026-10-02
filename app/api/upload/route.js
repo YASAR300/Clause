@@ -1,8 +1,25 @@
 import { handleUpload } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
+import { checkIpRateLimit, getClientIp } from "@/lib/rate-limit";
+
+export const maxDuration = 60;
 
 export async function POST(request) {
   try {
+    const ip = getClientIp(request);
+    const rateLimit = checkIpRateLimit(ip, { max: 15, windowMs: 60 * 1000 });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "RATE_LIMIT_EXCEEDED",
+            message: "Too many upload attempts. Please wait a minute before uploading more files.",
+          },
+        },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
 
     const jsonResponse = await handleUpload({
@@ -36,7 +53,12 @@ export async function POST(request) {
     return NextResponse.json(jsonResponse);
   } catch (error) {
     return NextResponse.json(
-      { error: error.message || "Failed to generate upload credentials" },
+      {
+        error: {
+          code: "UPLOAD_AUTH_FAILED",
+          message: error.message || "Failed to generate upload credentials",
+        },
+      },
       { status: 400 }
     );
   }

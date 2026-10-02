@@ -13,6 +13,7 @@ import { buildAnswerMessages } from "@/lib/ai/prompts/answer";
 import { CiteStreamParser } from "@/lib/ai/cite-parser";
 import { findQuote } from "@/lib/verify/quotes";
 import { runAgent } from "@/lib/agent";
+import { checkIpRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -81,6 +82,20 @@ function mergeMultipleCoverages(docCoverages, totalDocs) {
 }
 
 export async function POST(request) {
+  const ip = getClientIp(request);
+  const rateLimit = checkIpRateLimit(ip, { max: 30, windowMs: 60 * 1000 });
+  if (!rateLimit.allowed) {
+    return new Response(
+      JSON.stringify({
+        error: {
+          code: "RATE_LIMIT_EXCEEDED",
+          message: "Too many chat inquiries sent. Please wait a moment before sending another question.",
+        },
+      }),
+      { status: 429, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   let body;
   try {
     body = await request.json();

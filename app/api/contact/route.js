@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { checkIpRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const contactSchema = z.object({
   name: z
@@ -20,31 +21,12 @@ const contactSchema = z.object({
     .max(2000, "Message is too long"),
 });
 
-// Simple in-memory IP rate limiter: 5 requests per 10-minute window
-const rateLimitMap = new Map();
-const WINDOW_MS = 10 * 60 * 1000;
-const MAX_REQUESTS = 5;
-
-function checkRateLimit(ip) {
-  const now = Date.now();
-  const records = rateLimitMap.get(ip) || [];
-  const recentRecords = records.filter((timestamp) => now - timestamp < WINDOW_MS);
-
-  if (recentRecords.length >= MAX_REQUESTS) {
-    return false;
-  }
-
-  recentRecords.push(now);
-  rateLimitMap.set(ip, recentRecords);
-  return true;
-}
-
 export async function POST(request) {
   try {
-    const forwardedFor = request.headers.get("x-forwarded-for");
-    const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : "127.0.0.1";
+    const ip = getClientIp(request);
+    const rateLimit = checkIpRateLimit(ip, { max: 5, windowMs: 10 * 60 * 1000 });
 
-    if (!checkRateLimit(ip)) {
+    if (!rateLimit.allowed) {
       return NextResponse.json(
         {
           error: {

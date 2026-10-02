@@ -5,12 +5,20 @@ export async function GET(_request, { params }) {
   try {
     const { id } = await params;
 
+    if (!id || id === "undefined" || id === "null" || id.length < 10) {
+      return NextResponse.json(
+        { error: { code: "NOT_FOUND", message: "Invalid document identifier" } },
+        { status: 404 }
+      );
+    }
+
     const doc = await db.document.findUnique({
       where: { id },
       select: {
         id: true,
         name: true,
         blobUrl: true,
+        blobPathname: true,
         mimeType: true,
         sizeBytes: true,
       },

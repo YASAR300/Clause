@@ -41,7 +41,28 @@ export async function GET(_request, { params }) {
       );
     }
 
-    return NextResponse.json({ conversation });
+    // Build a documentId → label map from the conversation's linked documents.
+    const docLabelMap = new Map();
+    for (const cd of conversation.documents) {
+      if (cd.label) docLabelMap.set(cd.documentId, cd.label);
+    }
+
+    // Enrich each citation with the computed docLabel.
+    const enrichedConversation = {
+      ...conversation,
+      messages: conversation.messages.map((msg) => ({
+        ...msg,
+        citations: (msg.citations || []).map((cite) => ({
+          ...cite,
+          docLabel: docLabelMap.get(cite.documentId) || null,
+          documentName:
+            conversation.documents.find((cd) => cd.documentId === cite.documentId)
+              ?.document?.name || null,
+        })),
+      })),
+    };
+
+    return NextResponse.json({ conversation: enrichedConversation });
   } catch (error) {
     return NextResponse.json(
       { error: { code: "FETCH_FAILED", message: error.message } },

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { checkIpRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const waitlistSchema = z.object({
   email: z
@@ -12,6 +13,20 @@ const waitlistSchema = z.object({
 
 export async function POST(request) {
   try {
+    const ip = getClientIp(request);
+    const rateLimit = checkIpRateLimit(ip, { max: 10, windowMs: 10 * 60 * 1000 });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "RATE_LIMIT_EXCEEDED",
+            message: "Too many waitlist submissions. Please wait a few minutes before trying again.",
+          },
+        },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const result = waitlistSchema.safeParse(body);
 

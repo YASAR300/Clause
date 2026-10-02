@@ -38,9 +38,16 @@ async function main() {
     await buildSampleContracts();
   }
 
+  const DEMO_DOC_NAMES = [
+    V1_NAME,
+    V2_NAME,
+    "Processing Enterprise Services Agreement.pdf",
+    "Scanned Execution Addendum.pdf",
+  ];
+
   // 1. Clean existing demo records for idempotency
   const existingDocs = await db.document.findMany({
-    where: { name: { in: [V1_NAME, V2_NAME] } },
+    where: { name: { in: DEMO_DOC_NAMES } },
     select: { id: true },
   });
 
@@ -129,7 +136,46 @@ async function main() {
     await db.chunk.createMany({ data: v2Chunks });
   }
 
-  // Helper to parse citations through real parser and real verification engine
+  // Create demo mid-processing document
+  await db.document.create({
+    data: {
+      name: "Processing Enterprise Services Agreement.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 154200,
+      blobUrl: "data:application/pdf;base64,JVBERi0xLjQK",
+      blobPathname: "sample-contracts/processing.pdf",
+      status: "EXTRACTING",
+      statusDetail: "Reading page 6 of 13",
+      progress: 46,
+      pageCount: 13,
+      charCount: 6500,
+      fullText: "PROCESSING...",
+      emptyPages: [],
+    },
+  });
+
+  // Create demo scanned document (NEEDS_OCR)
+  await db.document.create({
+    data: {
+      name: "Scanned Execution Addendum.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 2450000,
+      blobUrl: "data:application/pdf;base64,JVBERi0xLjQK",
+      blobPathname: "sample-contracts/scanned.pdf",
+      status: "NEEDS_OCR",
+      statusDetail:
+        "This PDF looks scanned: it has no selectable text, so Clause can't read it. Upload a text-based version or run OCR first.",
+      progress: 0,
+      pageCount: 4,
+      charCount: 0,
+      fullText: "",
+      emptyPages: [1, 2, 3, 4],
+    },
+  });
+
+  // Helper to parse citations through real parser and real verification engine.
+  // CiteStreamParser.onCitation is synchronous, so citations are collected first
+  // and then written to the database in a subsequent async pass.
   async function processScriptedAssistantMessage({
     conversationId,
     rawModelText,
@@ -149,22 +195,30 @@ async function main() {
       },
     });
 
-    const parsedCitations = [];
+    // Phase 1: collect raw cite objects synchronously via the parser.
+    const rawCites = [];
     const parser = new CiteStreamParser({
-      onCleanText: () => {},
-      onCitation: async (rawCite) => {
-        const targetDoc = docsMap[rawCite.docId] || docsMap["D1"] || allDocs[0];
-        const otherDocs = allDocs.filter((d) => d.id !== targetDoc.id);
+      onCitation: (rawCite) => { rawCites.push(rawCite); },
+    });
+    parser.feed(rawModelText);
+    const parseResult = parser.end();
 
-        const verification = findQuote(
-          targetDoc.fullText,
-          targetDoc.pages || [],
-          rawCite.quoteText,
-          { otherDocuments: otherDocs }
-        );
+    // Phase 2: verify and persist each citation.
+    const savedCitations = [];
+    for (const rawCite of rawCites) {
+      const targetDoc = docsMap[rawCite.docId] || docsMap["D1"] || allDocs[0];
+      const otherDocs = allDocs.filter((d) => d.id !== targetDoc.id);
 
-        const firstMatch = verification.matches[0] || {};
-        const citationRecord = {
+      const verification = findQuote(
+        targetDoc.fullText,
+        targetDoc.pages || [],
+        rawCite.quoteText,
+        { otherDocuments: otherDocs }
+      );
+
+      const firstMatch = verification.matches[0] || {};
+      const saved = await db.citation.create({
+        data: {
           messageId: message.id,
           documentId: targetDoc.id,
           ordinal: rawCite.ordinal,
@@ -177,23 +231,28 @@ async function main() {
           pageEnd: firstMatch.pageEnd ?? 1,
           allMatches: { matches: verification.matches },
           failureReason: verification.reason,
-        };
-
-        const saved = await db.citation.create({ data: citationRecord });
-        parsedCitations.push(saved);
-      },
-    });
-
-    parser.feed(rawModelText);
-    const parseResult = parser.end();
+        },
+      });
+      savedCitations.push(saved);
+    }
 
     await db.message.update({
       where: { id: message.id },
       data: { content: parseResult.cleanText },
     });
 
-    return { message, citations: parsedCitations };
+    return { message, citations: savedCitations };
   }
+
+  // Load full docs with pages for exact character offset calculations
+  const fullDoc1 = await db.document.findUnique({
+    where: { id: doc1.id },
+    include: { pages: true },
+  });
+  const fullDoc2 = await db.document.findUnique({
+    where: { id: doc2.id },
+    include: { pages: true },
+  });
 
   // 3. Conversation 1: Single document (v1) with verified & unverified chips
   process.stdout.write("Seeding single-document conversation with genuine quote verification...\n");
@@ -216,22 +275,33 @@ async function main() {
     },
   });
 
+  // Quotes are verbatim copies from the extracted PDF text. The last cite is intentionally
+  // fabricated (text not in the document) to demonstrate the unverified chip state.
   const scriptedOutput1 =
-    "Under Section 9.1, each party's aggregate cumulative liability is capped at AED 1,000,000 <cite doc=\"D1\">each party's aggregate cumulative liability arising out of or related to this Agreement shall be strictly capped at and limited to AED 1,000,000.</cite>\n\nRegarding payment terms, customer payments are due within 30 days <cite doc=\"D1\">Customer shall pay all properly invoiced amounts within thirty (30) days from the invoice date.</cite> Late balances accrue interest at approximately one percent each month <cite doc=\"D1\">Late payments will accrue interest at approximately one percent each month</cite>.";
+    "Under Section 9.1, each party's aggregate cumulative liability is capped at AED 100,000." +
+    " <cite doc=\"D1\">each party's aggregate cumulative liability arising out of or related to this Agreement shall be strictly capped at and limited to AED 100,000.</cite>" +
+    "\n\nRegarding payment terms, invoiced amounts are due within 30 days" +
+    " <cite doc=\"D1\">properly invoiced amounts within\nthirty (30) days from the invoice date. Late payments shall accrue interest at a\nrate of 1.0% per month on the outstanding balance.</cite>" +
+    "\n\nAdditionally, each party bears its own audit costs" +
+    " <cite doc=\"D1\">bear its own internal administrative costs, legal fees, and\noperational expenses incurred in connection with its performance and compliance\nobligations under this Section.</cite>" +
+    "\n\nThe warranty on deliverables runs for 180 calendar days" +
+    " <cite doc=\"D1\">material defects for\fa continuous period of one hundred and eighty (180) calendar days following\nfinal acceptance by the Customer.</cite>" +
+    "\n\nNote: either party may also terminate upon 30 days notice for regulatory non-compliance" +
+    " <cite doc=\"D1\">either party may terminate this Agreement with thirty (30) days written notice upon confirmed regulatory non-compliance by the other party</cite>.";
 
   const conv1Coverage = {
     strategy: "RETRIEVAL",
-    pagesSearched: [1, 2, 4, 8],
+    pagesSearched: [1, 2, 4, 5, 6, 8],
     totalPages: 13,
-    percentage: 31,
-    summary: "Searched sections covering Payment and Limitation of Liability.",
+    percentage: 46,
+    summary: "Searched sections covering Payment, Audits, and Limitation of Liability.",
   };
 
   await processScriptedAssistantMessage({
     conversationId: conv1.id,
     rawModelText: scriptedOutput1,
-    docsMap: { D1: doc1 },
-    allDocs: [doc1],
+    docsMap: { D1: fullDoc1 },
+    allDocs: [fullDoc1],
     coverage: conv1Coverage,
   });
 
@@ -260,7 +330,18 @@ async function main() {
   });
 
   const scriptedOutput2 =
-    "Between Master Services Agreement v1 and v2, several critical commercial terms have changed:\n\n**Liability Cap**: In v1, liability is capped at AED 100,000 <cite doc=\"D1\">each party's aggregate cumulative liability arising out of or related to this Agreement shall be strictly capped at and limited to AED 100,000.</cite>, whereas in v2 the cap is increased tenfold to AED 1,000,000 <cite doc=\"D2\">each party's aggregate cumulative liability arising out of or related to this Agreement shall be strictly capped at and limited to AED 1,000,000.</cite>.\n\n**Payment Terms**: Under v1, payments are due in 30 days <cite doc=\"D1\">Customer shall pay all properly invoiced amounts within thirty (30) days from the invoice date.</cite> with 1.0% interest, while v2 extends terms to 60 days <cite doc=\"D2\">Customer shall pay all properly invoiced amounts within sixty (60) days from the invoice date.</cite> with 1.5% interest.\n\n**Termination for Convenience**: v1 allows either party to terminate for convenience upon sixty days notice <cite doc=\"D1\">Either party may terminate this Agreement or any Statement of Work without cause upon giving sixty (60) calendar days prior written notice to the other party.</cite>. In v2, this termination for convenience right has been completely removed.";
+    "Between Master Services Agreement v1 and v2, several critical commercial terms have changed:" +
+    "\n\n**Liability Cap**: In v1, liability is capped at AED 100,000" +
+    " <cite doc=\"D1\">each party's aggregate cumulative liability arising out of or related to this Agreement shall be strictly capped at and limited to AED 100,000.</cite>" +
+    " whereas in v2 the cap is increased tenfold to AED 1,000,000" +
+    " <cite doc=\"D2\">each party's aggregate cumulative liability arising out of or related to this Agreement shall be strictly capped at and limited to AED 1,000,000.</cite>." +
+    "\n\n**Payment Terms**: Under v1, payments are due in 30 days" +
+    " <cite doc=\"D1\">properly invoiced amounts within\nthirty (30) days from the invoice date. Late payments shall accrue interest at a\nrate of 1.0% per month on the outstanding balance.</cite>" +
+    " while v2 extends terms to 60 days" +
+    " <cite doc=\"D2\">properly invoiced amounts within sixty\n(60) days from the invoice date. Late payments shall accrue interest at a rate\nof 1.5% per month on the outstanding balance.</cite>." +
+    "\n\n**Termination for Convenience**: v1 allows either party to terminate for convenience upon sixty days notice" +
+    " <cite doc=\"D1\">Termination for Convenience. Either party may terminate this Agreement or\nany Statement of Work without cause upon giving sixty (60) calendar days prior\nwritten notice to the other party.</cite>" +
+    " In v2, this termination for convenience right has been completely removed.";
 
   const conv2Coverage = {
     documents: [
@@ -286,8 +367,8 @@ async function main() {
   await processScriptedAssistantMessage({
     conversationId: conv2.id,
     rawModelText: scriptedOutput2,
-    docsMap: { D1: doc1, D2: doc2 },
-    allDocs: [doc1, doc2],
+    docsMap: { D1: fullDoc1, D2: fullDoc2 },
+    allDocs: [fullDoc1, fullDoc2],
     coverage: conv2Coverage,
   });
 
@@ -541,7 +622,13 @@ async function main() {
   ];
 
   const agentScriptedOutput =
-    "Based on deep research across Master Services Agreement v1:\n\n1. **Liability Cap**: Under Section 9.1, aggregate cumulative liability is strictly limited to AED 100,000 <cite doc=\"D1\">each party's aggregate cumulative liability arising out of or related to this Agreement shall be strictly capped at and limited to AED 100,000.</cite>.\n2. **Consequential Damages**: Neither party is liable for indirect or punitive damages <cite doc=\"D1\">Neither party shall be liable for indirect, incidental, special, punitive, or consequential losses, or loss of profits.</cite>.\n3. **Warranty Period**: Deliverables are guaranteed against material defects for 180 calendar days <cite doc=\"D1\">material defects for a continuous period of one hundred and eighty (180) calendar days following final acceptance by the Customer.</cite>.";
+    "Based on deep research across Master Services Agreement v1:" +
+    "\n\n1. **Liability Cap**: Under Section 9.1, aggregate cumulative liability is strictly limited to AED 100,000" +
+    " <cite doc=\"D1\">each party's aggregate cumulative liability arising out of or related to this Agreement shall be strictly capped at and limited to AED 100,000.</cite>." +
+    "\n2. **Consequential Damages**: Neither party is liable for indirect or punitive damages" +
+    " <cite doc=\"D1\">Neither party shall be liable for indirect,\nincidental, special, punitive, or consequential losses, or loss of profits.</cite>." +
+    "\n3. **Warranty Period**: Deliverables are guaranteed against material defects for 180 calendar days" +
+    " <cite doc=\"D1\">material defects for\fa continuous period of one hundred and eighty (180) calendar days following\nfinal acceptance by the Customer.</cite>.";
 
   const agentCoverage = {
     strategy: "RETRIEVAL",
@@ -554,8 +641,8 @@ async function main() {
   await processScriptedAssistantMessage({
     conversationId: agentConv.id,
     rawModelText: agentScriptedOutput,
-    docsMap: { D1: doc1 },
-    allDocs: [doc1],
+    docsMap: { D1: fullDoc1 },
+    allDocs: [fullDoc1],
     coverage: agentCoverage,
     toolTrace: agentToolTrace,
   });

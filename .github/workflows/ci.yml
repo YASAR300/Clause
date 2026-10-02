@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run unit and integration tests
+        run: npm run test:ci
+
+      - name: Build Next.js application
+        env:
+          DATABASE_URL: "postgresql://ci_dummy_user:ci_dummy_pass@localhost:5432/ci_dummy_db"
+          DIRECT_URL: "postgresql://ci_dummy_user:ci_dummy_pass@localhost:5432/ci_dummy_db"
+          BLOB_READ_WRITE_TOKEN: "vercel_blob_rw_dummy_token_ci_only"
+          AI_API_KEY: "dummy_ai_api_key_for_build"
+          AI_BASE_URL: "https://api.groq.com/openai/v1"
+          AI_MODEL: "openai/gpt-oss-120b"
+          AI_FAST_MODEL: "openai/gpt-oss-20b"
+          NEXT_TELEMETRY_DISABLED: 1
+        run: npm run build:ci

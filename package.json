@@ -7,13 +7,16 @@
     "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "test": "vitest run",
+    "test:ci": "vitest run",
     "test:watch": "vitest",
+    "build:ci": "prisma generate && next build",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "samples:generate": "node scripts/generate-sample-contracts.mjs",
-    "seed:demo": "node scripts/seed-demo.mjs"
+    "seed:demo": "node scripts/seed-demo.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",
@@ -54,8 +57,10 @@
   "devDependencies": {
     "autoprefixer": "^10.4.20",
     "jsdom": "^29.1.1",
+    "playwright": "^1.63.0",
     "postcss": "^8.5.3",
     "prisma": "^6.4.1",
+    "sharp": "^0.35.5",
     "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
     "vitest": "^3.0.6"

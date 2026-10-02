@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import useSWR from "swr";
-import { MessageSquare, Bot, Loader2, Sparkles } from "lucide-react";
+import { MessageSquare, Bot, Loader2, Sparkles, ChevronRight } from "lucide-react";
+import { getDocumentAuditQueries } from "@/lib/ai/suggestions";
 import { useChatStream } from "@/lib/hooks/useChatStream";
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatComposer } from "@/components/chat/ChatComposer";
@@ -16,9 +17,14 @@ const fetcher = (url) => fetch(url).then((res) => res.json());
 export function DocumentChatPane({
   documentId,
   documentName,
+  document,
   isDocumentReady = true,
   onSelectCitation,
 }) {
+  const dynamicSuggestions = useMemo(() => {
+    return getDocumentAuditQueries(document || { name: documentName });
+  }, [document, documentName]);
+
   // Check for conversation linked to this document
   const { data: convData, mutate: mutateConv } = useSWR(
     documentId ? `/api/conversations?documentId=${documentId}` : null,
@@ -109,17 +115,48 @@ export function DocumentChatPane({
       {/* Message Stream or Empty State */}
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
         {messages.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-3">
-            <div className="h-10 w-10 rounded-xl bg-[#18181b] border border-[#27272a] flex items-center justify-center text-[#3b82f6]">
-              <Bot className="h-5 w-5" />
+          <div className="flex-1 flex flex-col justify-center p-4 space-y-4 overflow-y-auto">
+            <div className="text-center space-y-2">
+              <div className="mx-auto h-9 w-9 rounded-xl bg-[#18181b] border border-[#27272a] flex items-center justify-center text-[#3b82f6]">
+                <Bot className="h-4 w-4" />
+              </div>
+              <div className="space-y-0.5">
+                <h3 className="text-xs font-semibold text-[#ededed]">
+                  Contract-Tailored Audit Queries
+                </h3>
+                <p className="text-[11px] text-[#71717a]">
+                  Click to run a word-for-word check verified against exact character offsets.
+                </p>
+              </div>
             </div>
-            <div className="space-y-1 max-w-xs">
-              <h3 className="text-xs font-semibold text-[#ededed]">
-                Ask questions about this agreement
-              </h3>
-              <p className="text-[11px] text-[#71717a] leading-relaxed">
-                Click any citation in the answer to automatically highlight the exact passage in the contract.
-              </p>
+
+            <div className="space-y-1.5">
+              {dynamicSuggestions.slice(0, 3).map((item, idx) => {
+                const Icon = item.icon || Sparkles;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSend(item.prompt)}
+                    className="w-full flex items-start gap-2.5 p-2.5 rounded-lg bg-[#121215] hover:bg-[#18181c] border border-[#222226] hover:border-[#3b82f6]/40 text-left transition-all group"
+                  >
+                    <div className="h-6 w-6 rounded bg-[#18181b] border border-[#27272a] flex items-center justify-center shrink-0 text-[#71717a] group-hover:text-[#3b82f6] transition-colors mt-0.5">
+                      <Icon className="h-3 w-3" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-[#ededed] group-hover:text-[#3b82f6] transition-colors truncate">
+                          {item.title}
+                        </span>
+                        <ChevronRight className="h-3 w-3 text-[#52525b] group-hover:text-[#3b82f6] shrink-0" />
+                      </div>
+                      <p className="text-[10px] text-[#71717a] truncate mt-0.5">
+                        {item.description}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ) : (
@@ -141,7 +178,8 @@ export function DocumentChatPane({
           isStreaming={isStreaming}
           disabled={!isDocumentReady}
           disabledReason={!isDocumentReady ? "Contract indexing in progress..." : ""}
-          showSuggestions={messages.length === 0}
+          showSuggestions={messages.length > 0}
+          suggestions={dynamicSuggestions}
         />
       </div>
     </div>

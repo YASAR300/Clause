@@ -95,16 +95,23 @@ export function ChatComposer({
         <div className="space-y-2">
           <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#71717a]">
             <Sparkles className="h-3 w-3 text-[#3b82f6]" />
-            <span>Quick audit queries</span>
+            <span>Document-Specific Audit Queries</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-            {CATEGORIZED_PROMPTS.map((item, idx) => {
-              const Icon = item.icon;
+            {(Array.isArray(suggestions) && suggestions.length > 0
+              ? suggestions
+              : CATEGORIZED_PROMPTS
+            ).map((item, idx) => {
+              const Icon = item.icon || Sparkles;
+              const promptText = typeof item === "string" ? item : item.prompt;
+              const titleText = typeof item === "string" ? item : item.title || item.label;
+              const tagText = typeof item === "string" ? "Found in contract" : item.tag || "Word-for-word check";
+
               return (
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => handleSelectSuggestion(item.prompt)}
+                  onClick={() => handleSelectSuggestion(promptText)}
                   className="flex items-center gap-2 p-2 rounded-lg bg-[#141418] hover:bg-[#1a1a20] border border-[#27272a] hover:border-[#3b82f6]/40 text-left transition-all group shadow-sm active:scale-[0.98]"
                 >
                   <div className="h-6 w-6 rounded bg-[#1c1c22] border border-[#2d2d34] flex items-center justify-center shrink-0 text-[#71717a] group-hover:text-[#3b82f6] group-hover:border-[#3b82f6]/30 transition-colors">
@@ -112,10 +119,10 @@ export function ChatComposer({
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium text-[#ededed] truncate">
-                      {item.label}
+                      {titleText}
                     </p>
                     <p className="text-[10px] text-[#71717a] truncate font-mono">
-                      Word-for-word check
+                      {tagText}
                     </p>
                   </div>
                 </button>

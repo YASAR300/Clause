@@ -21,12 +21,9 @@ import {
   RotateCcw,
   ExternalLink,
   ChevronRight,
-  Shield,
-  CreditCard,
-  Scale,
-  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getDocumentAuditQueries } from "@/lib/ai/suggestions";
 import { useChatStream } from "@/lib/hooks/useChatStream";
 import { MessageList } from "@/components/chat/MessageList";
 import { ChatComposer } from "@/components/chat/ChatComposer";
@@ -53,33 +50,6 @@ import { Input } from "@/components/ui/input";
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
-const STARTER_CARDS = [
-  {
-    icon: Shield,
-    title: "Termination & Breach",
-    description: "Notice periods, default cure periods, and convenience clauses",
-    prompt: "What are the termination provisions, cure periods, and notice requirements?",
-  },
-  {
-    icon: CreditCard,
-    title: "Commercial & Payment",
-    description: "Payment terms, invoice cycles, net days, and late fees",
-    prompt: "What are the payment terms, invoicing schedule, and late fee penalties?",
-  },
-  {
-    icon: Scale,
-    title: "Liability & Indemnity",
-    description: "Aggregate liability caps, exclusions, and indemnity triggers",
-    prompt: "What is the aggregate liability cap and what carve-outs or exclusions apply?",
-  },
-  {
-    icon: Lock,
-    title: "Confidentiality & IP",
-    description: "Definition of proprietary info and survival after contract end",
-    prompt: "What are the confidentiality obligations and how long do they survive termination?",
-  },
-];
-
 export default function ConversationDetailPage({ params }) {
   const router = useRouter();
   const resolvedParams = use(params);
@@ -93,6 +63,10 @@ export default function ConversationDetailPage({ params }) {
   const conversation = data?.conversation;
   const initialMessages = conversation?.messages || [];
   const linkedDocs = conversation?.documents?.map((d) => d.document) || [];
+
+  const dynamicSuggestions = useMemo(() => {
+    return getDocumentAuditQueries(linkedDocs);
+  }, [linkedDocs]);
 
   const {
     messages,
@@ -453,14 +427,19 @@ export default function ConversationDetailPage({ params }) {
 
               {/* Starter Query Cards Grid */}
               <div className="w-full space-y-2">
-                <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#71717a]">
-                  <Sparkles className="h-3 w-3 text-[#3b82f6]" />
-                  <span>Common Audit Inquiries</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#71717a]">
+                    <Sparkles className="h-3 w-3 text-[#3b82f6]" />
+                    <span>Document-Specific Audit Queries</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-[#52525b]">
+                    Tailored to content
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {STARTER_CARDS.map((card, idx) => {
-                    const Icon = card.icon;
+                  {dynamicSuggestions.map((card, idx) => {
+                    const Icon = card.icon || Sparkles;
                     return (
                       <button
                         key={idx}
@@ -481,6 +460,11 @@ export default function ConversationDetailPage({ params }) {
                           <p className="text-[11px] text-[#71717a] leading-relaxed mt-0.5 line-clamp-2">
                             {card.description}
                           </p>
+                          {card.tag && (
+                            <span className="inline-block mt-1.5 text-[9px] font-mono text-[#3b82f6] bg-[#3b82f6]/10 px-1.5 py-0.5 rounded border border-[#3b82f6]/20">
+                              {card.tag}
+                            </span>
+                          )}
                         </div>
                       </button>
                     );
@@ -509,6 +493,7 @@ export default function ConversationDetailPage({ params }) {
               disabled={isDocumentUnready}
               disabledReason={unreadyReason}
               showSuggestions={messages.length > 0}
+              suggestions={dynamicSuggestions}
             />
           </div>
         </div>

@@ -182,6 +182,7 @@ export default function DocumentViewerPage({ params }) {
                 <DocumentChatPane
                   documentId={document.id}
                   documentName={document.name}
+                  document={document}
                   isDocumentReady={isReady}
                   onSelectCitation={(c) => setActiveCitation(c)}
                 />

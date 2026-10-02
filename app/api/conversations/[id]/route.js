@@ -19,7 +19,7 @@ export async function GET(_request, { params }) {
         documents: {
           include: {
             document: {
-              select: { id: true, name: true, status: true, pageCount: true },
+              select: { id: true, name: true, status: true, pageCount: true, fullText: true },
             },
           },
         },

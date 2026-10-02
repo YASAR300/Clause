@@ -319,8 +319,8 @@ export default function ConversationDetailPage({ params }) {
       {/* Main Chat Workspace Column */}
       <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden relative">
         {/* Top Bar Header */}
-        <header className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-[#222226] bg-[#0c0c0e]/90 backdrop-blur-md shrink-0 z-20">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
+        <header className="flex items-center justify-between gap-2 px-3 py-2 sm:px-4 sm:py-2.5 border-b border-[#222226] bg-[#0c0c0e]/95 backdrop-blur-md shrink-0 z-20">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <Link
               href="/chats"
               className="p-1.5 rounded-lg text-[#71717a] hover:text-[#ededed] hover:bg-[#18181b] transition-colors shrink-0"
@@ -331,7 +331,7 @@ export default function ConversationDetailPage({ params }) {
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h1 className="font-semibold text-sm text-[#ededed] truncate">
+                <h1 className="font-semibold text-xs sm:text-sm text-[#ededed] truncate">
                   {conversation.title}
                 </h1>
                 <Badge
@@ -343,23 +343,23 @@ export default function ConversationDetailPage({ params }) {
               </div>
 
               {/* Linked documents chips */}
-              <div className="flex items-center gap-2 mt-0.5 overflow-x-auto text-[11px] text-[#71717a]">
-                <span className="shrink-0 text-[#52525b]">
+              <div className="flex items-center gap-1.5 mt-0.5 overflow-x-auto no-scrollbar text-[11px] text-[#71717a]">
+                <span className="shrink-0 text-[#52525b] text-[10px] sm:text-[11px]">
                   {linkedDocs.length > 1 ? "Contracts:" : "Contract:"}
                 </span>
                 {linkedDocs.map((doc, idx) => (
                   <Link
                     key={doc.id || idx}
                     href={`/documents/${doc.id}`}
-                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#16161a] border border-[#27272a] text-[#a1a1aa] hover:text-[#3b82f6] hover:border-[#3b82f6]/40 transition-colors truncate max-w-[240px]"
+                    className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded bg-[#16161a] border border-[#27272a] text-[#a1a1aa] hover:text-[#3b82f6] hover:border-[#3b82f6]/40 transition-colors truncate max-w-[120px] sm:max-w-[240px]"
                     title={doc.name}
                   >
                     <span className="font-mono text-[10px] font-semibold text-[#3b82f6]">
                       {doc.label || `D${idx + 1}`}
                     </span>
-                    <span className="truncate">{doc.name}</span>
+                    <span className="truncate text-[10px] sm:text-[11px]">{doc.name}</span>
                     {doc.pageCount && (
-                      <span className="text-[10px] text-[#71717a] font-mono shrink-0">
+                      <span className="text-[9px] sm:text-[10px] text-[#71717a] font-mono shrink-0">
                         ({doc.pageCount}p)
                       </span>
                     )}
@@ -370,7 +370,7 @@ export default function ConversationDetailPage({ params }) {
           </div>
 
           {/* Right Header Actions */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {allCitations.length > 0 && !activeCitation && (
               <Button
                 variant="outline"
@@ -387,7 +387,7 @@ export default function ConversationDetailPage({ params }) {
               variant="outline"
               size="sm"
               onClick={() => setShowExportModal(true)}
-              className="h-7 px-2 text-xs border-[#27272a] text-[#a1a1aa] hover:text-[#ededed] hover:bg-[#18181b] gap-1"
+              className="h-7 w-7 sm:w-auto p-0 sm:px-2 text-xs border-[#27272a] text-[#a1a1aa] hover:text-[#ededed] hover:bg-[#18181b] gap-1 flex items-center justify-center"
               title="Export verified audit report"
             >
               <Download className="h-3.5 w-3.5" />
@@ -537,7 +537,7 @@ export default function ConversationDetailPage({ params }) {
         </div>
 
         {/* Composer Container */}
-        <div className="p-4 bg-[#0c0c0e]/95 backdrop-blur-md border-t border-[#222226] shrink-0 z-20">
+        <div className="p-2.5 sm:p-4 bg-[#0c0c0e]/95 backdrop-blur-md border-t border-[#222226] shrink-0 z-20">
           <div className="max-w-4xl mx-auto w-full">
             <ChatComposer
               onSend={handleSendQuestion}

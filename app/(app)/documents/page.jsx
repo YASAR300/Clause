@@ -325,7 +325,7 @@ export default function DocumentsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-between sm:justify-start">
           {/* Status filter */}
           <div className="flex items-center gap-1.5 bg-[#18181b] border border-[#27272a] rounded-md px-2 py-1">
             <Filter className="h-3 w-3 text-[#71717a] shrink-0" />
@@ -441,9 +441,9 @@ export default function DocumentsPage() {
                   </th>
                   <th className="py-2.5 px-3">Contract Name</th>
                   <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-3">Pages</th>
-                  <th className="py-2.5 px-3">Size</th>
-                  <th className="py-2.5 px-3">Uploaded</th>
+                  <th className="py-2.5 px-3 hidden md:table-cell">Pages</th>
+                  <th className="py-2.5 px-3 hidden md:table-cell">Size</th>
+                  <th className="py-2.5 px-3 hidden md:table-cell">Uploaded</th>
                   <th className="py-2.5 px-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -472,7 +472,7 @@ export default function DocumentsPage() {
                         </button>
                       </td>
                       <td className="py-3 px-3">
-                        <div className="flex items-center gap-2.5 min-w-[200px]">
+                        <div className="flex items-center gap-2.5 min-w-[140px] sm:min-w-[200px]">
                           <div className="h-7 w-7 rounded bg-surface border border-border flex items-center justify-center shrink-0 text-muted group-hover:text-accent transition-colors">
                             <FileText className="h-3.5 w-3.5" />
                           </div>
@@ -480,11 +480,21 @@ export default function DocumentsPage() {
                             <span className="font-medium text-text block truncate" title={doc.name}>
                               {doc.name}
                             </span>
-                            {doc.versionLabel && (
-                              <span className="text-[10px] text-muted font-mono">
-                                v{doc.versionLabel}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {doc.versionLabel && (
+                                <span className="text-[10px] text-muted font-mono">
+                                  v{doc.versionLabel}
+                                </span>
+                              )}
+                              <span className="md:hidden text-[10px] text-muted font-mono">
+                                {formatBytes(doc.sizeBytes)}
                               </span>
-                            )}
+                              {doc.pageCount && (
+                                <span className="md:hidden text-[10px] text-muted font-mono">
+                                  • {doc.pageCount}p
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -495,13 +505,13 @@ export default function DocumentsPage() {
                           statusDetail={doc.statusDetail}
                         />
                       </td>
-                      <td className="py-3 px-3 text-muted font-mono whitespace-nowrap">
+                      <td className="py-3 px-3 text-muted font-mono whitespace-nowrap hidden md:table-cell">
                         {doc.pageCount ? `${doc.pageCount} p.` : "—"}
                       </td>
-                      <td className="py-3 px-3 text-muted font-mono whitespace-nowrap">
+                      <td className="py-3 px-3 text-muted font-mono whitespace-nowrap hidden md:table-cell">
                         {formatBytes(doc.sizeBytes)}
                       </td>
-                      <td className="py-3 px-3 text-muted whitespace-nowrap">
+                      <td className="py-3 px-3 text-muted whitespace-nowrap hidden md:table-cell">
                         <RelativeTime date={doc.createdAt} />
                       </td>
                       <td className="py-3 px-3 text-right">

@@ -83,10 +83,18 @@ export function CitationInspector({
   };
 
   return (
-    <aside
-      aria-label="Citation Inspector"
-      className="w-full sm:w-[380px] lg:w-[420px] h-full flex flex-col bg-[#0c0c0e] border-l border-[#222226] shadow-2xl z-30 animate-in slide-in-from-right duration-200 shrink-0"
-    >
+    <>
+      {/* Mobile Backdrop Overlay */}
+      <div
+        className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 sm:hidden animate-in fade-in duration-200"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      <aside
+        aria-label="Citation Inspector"
+        className="fixed inset-y-0 right-0 sm:relative sm:inset-auto w-full max-w-[92vw] sm:max-w-none sm:w-[380px] lg:w-[420px] h-full flex flex-col bg-[#0c0c0e] border-l border-[#222226] shadow-2xl z-50 sm:z-30 animate-in slide-in-from-right duration-200 shrink-0"
+      >
       {/* Drawer Header */}
       <div className="flex items-center justify-between p-4 border-b border-[#222226] bg-[#121215]/80 backdrop-blur-md">
         <div className="flex items-center gap-2.5">
@@ -284,5 +292,6 @@ export function CitationInspector({
         </div>
       </div>
     </aside>
+    </>
   );
 }

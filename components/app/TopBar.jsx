@@ -24,7 +24,17 @@ export function TopBar({ onOpenMobileMenu, onOpenSearch }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onOpenSearch}
+          className="sm:hidden h-8 w-8 text-muted hover:text-text"
+          aria-label="Search and quick actions"
+        >
+          <Search className="h-4 w-4" />
+        </Button>
+
         <button
           onClick={onOpenSearch}
           className="hidden sm:flex items-center gap-2 rounded-md border border-border bg-elevated/70 px-2.5 py-1 text-xs text-muted hover:text-text transition-colors"

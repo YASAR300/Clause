@@ -70,6 +70,14 @@
 }
 
 @layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
   .legal-quote {
     font-family: var(--font-geist-mono), monospace;
     font-size: 0.875rem;

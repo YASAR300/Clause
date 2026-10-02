@@ -106,7 +106,7 @@ export function ChatComposer({
             <Sparkles className="h-3 w-3 text-[#3b82f6]" />
             <span>Document-Specific Audit Queries</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-2 overflow-x-auto no-scrollbar pb-1 -mx-0.5 px-0.5">
             {(Array.isArray(suggestions) && suggestions.length > 0
               ? suggestions
               : CATEGORIZED_PROMPTS
@@ -121,7 +121,7 @@ export function ChatComposer({
                   key={idx}
                   type="button"
                   onClick={() => handleSelectSuggestion(promptText)}
-                  className="flex items-center gap-2 p-2 rounded-lg bg-[#141418] hover:bg-[#1a1a20] border border-[#27272a] hover:border-[#3b82f6]/40 text-left transition-all group shadow-sm active:scale-[0.98]"
+                  className="flex items-center gap-2 p-2 rounded-lg bg-[#141418] hover:bg-[#1a1a20] border border-[#27272a] hover:border-[#3b82f6]/40 text-left transition-all group shadow-sm active:scale-[0.98] shrink-0 max-w-[210px] sm:max-w-none"
                 >
                   <div className="h-6 w-6 rounded bg-[#1c1c22] border border-[#2d2d34] flex items-center justify-center shrink-0 text-[#71717a] group-hover:text-[#3b82f6] group-hover:border-[#3b82f6]/30 transition-colors">
                     <Icon className="h-3 w-3" />
@@ -150,21 +150,23 @@ export function ChatComposer({
       )}
 
       {/* Document Picker & Mode Bar */}
-      <div className="flex items-center justify-between gap-2 px-1 flex-wrap">
-        {allowDocPicker ? (
-          <DocumentPicker
-            selectedDocs={selectedDocs}
-            onChange={onSelectDocs}
-            disabled={disabled || isStreaming}
-          />
-        ) : (
-          <div />
-        )}
+      <div className="flex items-center justify-between gap-2 px-1">
+        <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar py-0.5">
+          {allowDocPicker ? (
+            <DocumentPicker
+              selectedDocs={selectedDocs}
+              onChange={onSelectDocs}
+              disabled={disabled || isStreaming}
+            />
+          ) : (
+            <div />
+          )}
+        </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           {selectedDocs.length > 1 && (
-            <span className="text-[10px] font-mono text-[#3b82f6] bg-[#3b82f6]/10 px-1.5 py-0.5 rounded border border-[#3b82f6]/20 shrink-0">
-              Multi-doc compare
+            <span className="hidden sm:inline-block text-[10px] font-mono text-[#3b82f6] bg-[#3b82f6]/10 px-1.5 py-0.5 rounded border border-[#3b82f6]/20 shrink-0">
+              Multi-doc
             </span>
           )}
 
@@ -173,7 +175,7 @@ export function ChatComposer({
             type="button"
             onClick={() => onToggleDeepResearch?.(!isDeepResearch)}
             disabled={disabled || isStreaming}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono transition-all select-none ${
+            className={`inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-[11px] font-mono transition-all select-none shrink-0 ${
               isDeepResearch
                 ? "bg-[#3b82f6]/20 border border-[#3b82f6]/60 text-[#3b82f6] font-semibold shadow-[0_0_10px_rgba(59,130,246,0.15)]"
                 : "bg-[#18181b] border border-[#27272a] text-[#71717a] hover:text-[#ededed] hover:border-[#3f3f46]"
@@ -181,7 +183,8 @@ export function ChatComposer({
             title="When active, the model calls tools autonomously to inspect contract clauses"
           >
             <Compass className="h-3.5 w-3.5 text-[#3b82f6]" />
-            <span>Deep research</span>
+            <span className="hidden sm:inline">Deep research</span>
+            <span className="sm:hidden text-[10px]">Deep</span>
             {isDeepResearch && (
               <span className="h-1.5 w-1.5 rounded-full bg-[#3b82f6] animate-pulse" />
             )}
@@ -245,12 +248,12 @@ export function ChatComposer({
       </div>
 
       <div className="flex items-center justify-between text-[11px] text-[#71717a] px-1 font-mono">
-        <div className="flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-2">
           <span>Enter ↵ to send</span>
           <span>•</span>
           <span>Shift + Enter for new line</span>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
           <span className="h-1.5 w-1.5 rounded-full bg-[#10b981]" />
           <span>Character-accurate verification</span>
         </div>

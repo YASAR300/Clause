@@ -33,10 +33,13 @@ export default function AppLayout({ children }) {
 
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
-        <TopBar
-          onOpenMobileMenu={() => setMobileMenuOpen(true)}
-          onOpenSearch={() => setCommandPaletteOpen(true)}
-        />
+        {/* On mobile full-bleed views like /chats/[id], the view provides its own purpose-built header. Hide TopBar on mobile to prevent double-stacked headers. */}
+        <div className={isFullBleed ? "hidden md:block" : "block"}>
+          <TopBar
+            onOpenMobileMenu={() => setMobileMenuOpen(true)}
+            onOpenSearch={() => setCommandPaletteOpen(true)}
+          />
+        </div>
 
         {isFullBleed ? (
           <main className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">

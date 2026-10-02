@@ -140,16 +140,62 @@ export default function DocumentViewerPage({ params }) {
         onToggleChat={() => setChatOpen(!chatOpen)}
       />
 
-      {/* Main Two-Pane Resizable Layout */}
+      {/* Main Layout */}
       {!isReady ? (
         <div className="flex-1 min-h-0 overflow-y-auto">
           <UnreadyState document={document} onRetry={mutate} />
         </div>
       ) : (
         <div className="flex-1 min-h-0 w-full overflow-hidden">
-          <Group orientation="horizontal" className="h-full w-full">
-            {/* Left Pane: Document Viewer */}
-            <Panel defaultSize={chatOpen ? 65 : 100} minSize={35} className="h-full">
+          {/* Desktop Resizable View */}
+          <div className="hidden md:block h-full w-full">
+            <Group orientation="horizontal" className="h-full w-full">
+              {/* Left Pane: Document Viewer */}
+              <Panel defaultSize={chatOpen ? 65 : 100} minSize={35} className="h-full">
+                {isDocx ? (
+                  <DocxViewer
+                    documentId={document.id}
+                    documentName={document.name}
+                    citation={activeCitation}
+                    fullText={document.fullText || ""}
+                    onFindInDoc={(q) => setSearchQuery(q)}
+                    onDismissCitation={() => setActiveCitation(null)}
+                  />
+                ) : (
+                  <PdfViewer
+                    documentId={document.id}
+                    documentName={document.name}
+                    citation={activeCitation}
+                    fullText={document.fullText || ""}
+                    onFindInDoc={(q) => setSearchQuery(q)}
+                    onDismissCitation={() => setActiveCitation(null)}
+                  />
+                )}
+              </Panel>
+
+              {/* Resizable Divider */}
+              {chatOpen && (
+                <Separator className="w-1.5 bg-[#18181b] hover:bg-[#3b82f6] border-x border-[#222226] transition-colors cursor-col-resize shrink-0" />
+              )}
+
+              {/* Right Pane: Document Chat Companion */}
+              {chatOpen && (
+                <Panel defaultSize={35} minSize={25} className="h-full">
+                  <DocumentChatPane
+                    documentId={document.id}
+                    documentName={document.name}
+                    document={document}
+                    isDocumentReady={isReady}
+                    onSelectCitation={(c) => setActiveCitation(c)}
+                  />
+                </Panel>
+              )}
+            </Group>
+          </div>
+
+          {/* Mobile View: Single Pane with toggle between Viewer & Chat */}
+          <div className="md:hidden h-full w-full relative">
+            <div className={`h-full w-full ${chatOpen ? "hidden" : "block"}`}>
               {isDocx ? (
                 <DocxViewer
                   documentId={document.id}
@@ -169,26 +215,23 @@ export default function DocumentViewerPage({ params }) {
                   onDismissCitation={() => setActiveCitation(null)}
                 />
               )}
-            </Panel>
+            </div>
 
-            {/* Resizable Divider */}
             {chatOpen && (
-              <Separator className="w-1.5 bg-[#18181b] hover:bg-[#3b82f6] border-x border-[#222226] transition-colors cursor-col-resize shrink-0" />
-            )}
-
-            {/* Right Pane: Document Chat Companion */}
-            {chatOpen && (
-              <Panel defaultSize={35} minSize={25} className="h-full">
+              <div className="h-full w-full bg-[#0c0c0e]">
                 <DocumentChatPane
                   documentId={document.id}
                   documentName={document.name}
                   document={document}
                   isDocumentReady={isReady}
-                  onSelectCitation={(c) => setActiveCitation(c)}
+                  onSelectCitation={(c) => {
+                    setActiveCitation(c);
+                    setChatOpen(false);
+                  }}
                 />
-              </Panel>
+              </div>
             )}
-          </Group>
+          </div>
         </div>
       )}
     </div>

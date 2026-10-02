@@ -306,10 +306,10 @@ export default function ChatsPage() {
               </div>
 
               {/* Right metadata and actions */}
-              <div className="flex items-center justify-between sm:justify-end gap-4 text-xs text-muted pl-12 sm:pl-0 shrink-0">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-muted pl-12 sm:pl-0 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <span className="font-mono text-[11px]">
-                    {conv.messageCount} {conv.messageCount === 1 ? "message" : "messages"}
+                    {conv.messageCount} {conv.messageCount === 1 ? "msg" : "msgs"}
                   </span>
                   <span>•</span>
                   <RelativeTime date={conv.updatedAt} />
@@ -322,7 +322,7 @@ export default function ChatsPage() {
                     asChild
                     className="h-7 px-2.5 text-xs text-muted hover:text-text"
                   >
-                    <Link href={`/chats?id=${conv.id}`}>Open</Link>
+                    <Link href={`/chats/${conv.id}`}>Open</Link>
                   </Button>
 
                   <DropdownMenu>

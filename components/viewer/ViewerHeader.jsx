@@ -43,12 +43,12 @@ export function ViewerHeader({
   if (!document) return null;
 
   return (
-    <header className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-[#222226] bg-[#0c0c0e]/95 backdrop-blur-md shrink-0 z-30">
+    <header className="flex items-center justify-between gap-2 sm:gap-3 px-2.5 sm:px-4 py-2 sm:py-2.5 border-b border-[#222226] bg-[#0c0c0e]/95 backdrop-blur-md shrink-0 z-30">
       {/* Left: Back & Document Details / Switcher */}
-      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+      <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1">
         <Link
           href="/documents"
-          className="p-1.5 rounded-lg text-[#71717a] hover:text-[#ededed] hover:bg-[#18181b] transition-colors shrink-0"
+          className="p-1 sm:p-1.5 rounded-lg text-[#71717a] hover:text-[#ededed] hover:bg-[#18181b] transition-colors shrink-0"
           aria-label="Back to document library"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -59,9 +59,9 @@ export function ViewerHeader({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-1.5 min-w-0 max-w-[280px] p-1 rounded-md hover:bg-[#18181b] transition-colors text-left"
+                className="flex items-center gap-1 sm:gap-1.5 min-w-0 max-w-[120px] sm:max-w-[280px] p-1 rounded-md hover:bg-[#18181b] transition-colors text-left"
               >
-                <FileText className="h-4 w-4 text-[#3b82f6] shrink-0" />
+                <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#3b82f6] shrink-0" />
                 <span className="font-semibold text-xs text-[#ededed] truncate">
                   {document.name}
                 </span>
@@ -103,7 +103,7 @@ export function ViewerHeader({
       </div>
 
       {/* Center: Find-in-document box */}
-      <div className="flex items-center gap-1 bg-[#141418] border border-[#27272a] focus-within:border-[#3b82f6]/60 rounded-lg px-2 py-1 max-w-[240px] sm:max-w-[280px] w-full">
+      <div className="hidden sm:flex items-center gap-1 bg-[#141418] border border-[#27272a] focus-within:border-[#3b82f6]/60 rounded-lg px-2 py-1 max-w-[200px] sm:max-w-[280px] w-full">
         <Search className="h-3.5 w-3.5 text-[#71717a] shrink-0 pointer-events-none" />
         <input
           type="text"
@@ -181,9 +181,10 @@ export function ViewerHeader({
               ? "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]/30"
               : "text-[#a1a1aa] hover:text-[#ededed] hover:bg-[#18181b]"
           }`}
-          title={chatOpen ? "Hide chat panel" : "Show chat panel"}
+          title={chatOpen ? "Switch to document" : "Switch to chat"}
         >
           <MessageSquare className="h-3.5 w-3.5" />
+          <span className="sm:hidden">{chatOpen ? "Doc" : "Chat"}</span>
           <span className="hidden sm:inline">{chatOpen ? "Chat" : "Open Chat"}</span>
         </Button>
       </div>

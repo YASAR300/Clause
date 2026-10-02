@@ -87,7 +87,7 @@ export function MessageList({
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 h-full overflow-y-auto px-4 py-6 space-y-6 scrollbar-thin"
+        className="flex-1 min-h-0 h-full overflow-y-auto px-2.5 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 scrollbar-thin"
       >
         {messages.map((message) => {
           const isUser = message.role === "USER";
@@ -98,7 +98,7 @@ export function MessageList({
           return (
             <div
               key={message.id}
-              className={`flex items-start gap-3 max-w-4xl mx-auto ${
+              className={`flex items-start gap-2.5 sm:gap-3 max-w-4xl mx-auto ${
                 isUser ? "flex-row-reverse" : "flex-row"
               }`}
             >
@@ -115,9 +115,9 @@ export function MessageList({
 
               {/* Message Bubble & Content */}
               <div
-                className={`flex-1 min-w-0 rounded-xl p-4 transition-all shadow-sm ${
+                className={`flex-1 min-w-0 rounded-xl p-3 sm:p-4 transition-all shadow-sm ${
                   isUser
-                    ? "bg-[#18181b] border border-[#27272a] text-[#ededed] max-w-[85%] sm:max-w-[75%]"
+                    ? "bg-[#18181b] border border-[#27272a] text-[#ededed] max-w-[88%] sm:max-w-[75%]"
                     : "bg-[#121215] border border-[#222226] text-[#ededed] space-y-3"
                 }`}
               >
@@ -128,12 +128,13 @@ export function MessageList({
                 ) : (
                   <>
                     {/* Assistant Header info bar */}
-                    <div className="flex items-center justify-between pb-2 border-b border-[#222226] text-[11px] font-mono text-[#71717a]">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#222226] text-[11px] font-mono text-[#71717a] gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
                         <span className="font-semibold text-[#ededed]">Clause AI</span>
                         <span className="inline-flex items-center gap-1 text-[10px] text-[#10b981] px-1.5 py-0.2 rounded bg-[#10b981]/10 border border-[#10b981]/20">
                           <ShieldCheck className="h-3 w-3" />
-                          Ground Truth
+                          <span className="hidden sm:inline">Ground Truth</span>
+                          <span className="sm:hidden">Verified</span>
                         </span>
                       </div>
 
@@ -144,7 +145,8 @@ export function MessageList({
                           className="inline-flex items-center gap-1 text-[10px] text-[#3b82f6] hover:text-[#60a5fa] transition-colors"
                         >
                           <SearchCode className="h-3 w-3" />
-                          <span>Inspect Citations ({citations.length})</span>
+                          <span className="hidden sm:inline">Inspect Citations ({citations.length})</span>
+                          <span className="sm:hidden">Inspect ({citations.length})</span>
                         </button>
                       )}
                     </div>

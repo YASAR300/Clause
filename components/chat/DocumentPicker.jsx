@@ -77,7 +77,7 @@ export function DocumentPicker({
   };
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1.5 flex-nowrap">
       {/* Active Selected Document Chips */}
       {selectedDocs.map((doc, idx) => {
         const label = doc.label || `D${idx + 1}`;
@@ -86,12 +86,12 @@ export function DocumentPicker({
         return (
           <span
             key={doc.id || idx}
-            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#18181b] border border-[#27272a] text-xs text-[#ededed] shadow-xs group"
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#18181b] border border-[#27272a] text-xs text-[#ededed] shadow-xs group shrink-0"
           >
             <span className="font-mono text-[10px] font-semibold text-[#3b82f6]">
               [{label}]
             </span>
-            <span className="truncate max-w-[140px] text-[11px]" title={doc.name}>
+            <span className="truncate max-w-[95px] sm:max-w-[140px] text-[11px]" title={doc.name}>
               {doc.name}
             </span>
             {canRemove && !disabled && (
@@ -119,7 +119,8 @@ export function DocumentPicker({
             className="h-6 px-2 text-[11px] font-medium border-[#27272a] text-[#71717a] hover:text-[#ededed] hover:bg-[#18181b] gap-1 rounded-md"
           >
             <Plus className="h-3 w-3 text-[#3b82f6]" />
-            <span>Add Contract</span>
+            <span className="hidden sm:inline">Add Contract</span>
+            <span className="sm:hidden">Add</span>
             <ChevronDown className="h-3 w-3 opacity-60" />
           </Button>
         </PopoverTrigger>

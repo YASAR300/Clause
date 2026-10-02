@@ -97,7 +97,8 @@ export function CitationChip({ citation, fallbackOrdinal = 1, onInspect }) {
       <PopoverContent
         align="center"
         side="top"
-        className="w-80 sm:w-96 p-3 bg-[#121214] border border-[#27272a] shadow-2xl rounded-lg text-xs z-50"
+        collisionPadding={16}
+        className="w-[calc(100vw-32px)] max-w-sm sm:w-96 p-3 bg-[#121214] border border-[#27272a] shadow-2xl rounded-lg text-xs z-50"
       >
         {/* Header Badge */}
         <div className="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-[#27272a]">

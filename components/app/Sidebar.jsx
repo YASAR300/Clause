@@ -205,7 +205,7 @@ export function MobileSidebar({ open, onOpenChange, onOpenSearch }) {
   const pathname = usePathname();
 
   return (
-    <div className="flex flex-col justify-between h-full bg-surface p-4">
+    <div className="flex flex-col justify-between h-full bg-surface p-4 pb-8 sm:pb-4">
       <div>
         <div className="flex items-center gap-2.5 pb-4 mb-4 border-b border-border">
           <LogoMark className="h-6 w-6" />
@@ -217,13 +217,13 @@ export function MobileSidebar({ open, onOpenChange, onOpenSearch }) {
             onOpenChange(false);
             onOpenSearch();
           }}
-          className="w-full flex items-center justify-between rounded-lg border border-border bg-elevated px-3 py-2 text-xs text-muted mb-4"
+          className="w-full flex items-center justify-between rounded-lg border border-border bg-elevated px-3 py-2.5 text-xs text-muted mb-4 active:scale-[0.99] transition-transform"
         >
           <div className="flex items-center gap-2">
             <Search className="h-4 w-4" />
             <span>Search...</span>
           </div>
-          <kbd className="font-mono text-[10px] bg-surface px-1.5 py-0.5 rounded border border-border">
+          <kbd className="hidden sm:inline-block font-mono text-[10px] bg-surface px-1.5 py-0.5 rounded border border-border">
             ⌘K
           </kbd>
         </button>
@@ -258,7 +258,7 @@ export function MobileSidebar({ open, onOpenChange, onOpenSearch }) {
           onClick={() => onOpenChange(false)}
           className="block"
         >
-          <Button className="w-full bg-accent text-white gap-2 text-xs">
+          <Button className="w-full bg-accent text-white gap-2 text-xs h-10 shadow-sm active:scale-[0.99] transition-transform">
             <Upload className="h-4 w-4" />
             Upload Contract
           </Button>

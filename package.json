@@ -12,7 +12,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "samples:generate": "node scripts/generate-sample-contracts.mjs"
+    "samples:generate": "node scripts/generate-sample-contracts.mjs",
+    "seed:demo": "node scripts/seed-demo.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",

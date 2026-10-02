@@ -19,6 +19,7 @@ import { MessageContent } from "./MessageContent";
 import { CoverageIndicator } from "./CoverageIndicator";
 import { SourcesList } from "./SourcesList";
 import { NotFoundCard } from "./NotFoundCard";
+import { AgentActivityTimeline } from "./AgentActivityTimeline";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -148,19 +149,28 @@ export function MessageList({
                       )}
                     </div>
 
+                    {/* Agent Research Timeline */}
+                    {((message.toolTrace && message.toolTrace.length > 0) || (isStreamingThis && !message.content)) && (
+                      <AgentActivityTimeline
+                        toolTrace={message.toolTrace || []}
+                        isStreaming={isStreamingThis}
+                        activeRound={message.activeRound}
+                      />
+                    )}
+
                     {/* Assistant answer content */}
                     {message.isNotFound ? (
                       <NotFoundCard
                         explanation={message.content}
                         coverage={message.coverage}
                       />
-                    ) : (
+                    ) : message.content ? (
                       <MessageContent
                         content={message.content}
                         citations={citations}
                         onInspect={onInspect}
                       />
-                    )}
+                    ) : null}
 
                     {/* Streaming indicator */}
                     {isStreamingThis && (

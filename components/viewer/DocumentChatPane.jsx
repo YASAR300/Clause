@@ -66,8 +66,32 @@ export function DocumentChatPane({
     }
   }, [initialMessages]);
 
-  const handleSend = async (question) => {
+  const [isDeepResearch, setIsDeepResearch] = useState(
+    existingConversation?.mode === "AGENT"
+  );
+
+  useEffect(() => {
+    if (existingConversation?.mode === "AGENT") {
+      setIsDeepResearch(true);
+    }
+  }, [existingConversation?.mode]);
+
+  const handleToggleDeepResearch = async (nextVal) => {
+    setIsDeepResearch(nextVal);
+    if (conversationId) {
+      try {
+        await fetch(`/api/conversations/${conversationId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: nextVal ? "AGENT" : "STANDARD" }),
+        });
+      } catch (e) {}
+    }
+  };
+
+  const handleSend = async (question, explicitDocIds, explicitMode) => {
     let activeConvId = conversationId;
+    const modeToSend = explicitMode || (isDeepResearch ? "AGENT" : "STANDARD");
 
     // Create conversation on first question if not existing
     if (!activeConvId) {
@@ -78,6 +102,7 @@ export function DocumentChatPane({
           body: JSON.stringify({
             title: `Q&A: ${documentName.slice(0, 32)}`,
             documentIds: [documentId],
+            mode: modeToSend,
           }),
         });
         const json = await res.json();
@@ -94,7 +119,7 @@ export function DocumentChatPane({
     sendMessage({
       question,
       documentIds: [documentId],
-      mode: "STANDARD",
+      mode: modeToSend,
       conversationId: activeConvId,
     });
   };
@@ -180,6 +205,8 @@ export function DocumentChatPane({
           disabledReason={!isDocumentReady ? "Contract indexing in progress..." : ""}
           showSuggestions={messages.length > 0}
           suggestions={dynamicSuggestions}
+          isDeepResearch={isDeepResearch}
+          onToggleDeepResearch={handleToggleDeepResearch}
         />
       </div>
     </div>

@@ -11,6 +11,7 @@ import {
   CreditCard,
   Scale,
   Lock,
+  Compass,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DocumentPicker } from "@/components/chat/DocumentPicker";
@@ -53,6 +54,8 @@ export function ChatComposer({
   selectedDocs = [],
   onSelectDocs,
   allowDocPicker = false,
+  isDeepResearch = false,
+  onToggleDeepResearch,
 }) {
   const [input, setInput] = useState("");
   const textareaRef = useRef(null);
@@ -81,7 +84,7 @@ export function ChatComposer({
     if (!trimmed) return;
 
     const docIds = selectedDocs.length > 0 ? selectedDocs.map((d) => d.id) : undefined;
-    onSend(trimmed, docIds);
+    onSend(trimmed, docIds, isDeepResearch ? "AGENT" : "STANDARD");
     setInput("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -91,7 +94,7 @@ export function ChatComposer({
   const handleSelectSuggestion = (promptText) => {
     if (disabled || isStreaming) return;
     const docIds = selectedDocs.length > 0 ? selectedDocs.map((d) => d.id) : undefined;
-    onSend(promptText, docIds);
+    onSend(promptText, docIds, isDeepResearch ? "AGENT" : "STANDARD");
   };
 
   return (
@@ -146,21 +149,45 @@ export function ChatComposer({
         </div>
       )}
 
-      {/* Document Picker Row */}
-      {allowDocPicker && (
-        <div className="flex items-center justify-between gap-2 px-1">
+      {/* Document Picker & Mode Bar */}
+      <div className="flex items-center justify-between gap-2 px-1 flex-wrap">
+        {allowDocPicker ? (
           <DocumentPicker
             selectedDocs={selectedDocs}
             onChange={onSelectDocs}
             disabled={disabled || isStreaming}
           />
+        ) : (
+          <div />
+        )}
+
+        <div className="flex items-center gap-2">
           {selectedDocs.length > 1 && (
             <span className="text-[10px] font-mono text-[#3b82f6] bg-[#3b82f6]/10 px-1.5 py-0.5 rounded border border-[#3b82f6]/20 shrink-0">
-              Multi-doc compare mode
+              Multi-doc compare
             </span>
           )}
+
+          {/* Deep research toggle button */}
+          <button
+            type="button"
+            onClick={() => onToggleDeepResearch?.(!isDeepResearch)}
+            disabled={disabled || isStreaming}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono transition-all select-none ${
+              isDeepResearch
+                ? "bg-[#3b82f6]/20 border border-[#3b82f6]/60 text-[#3b82f6] font-semibold shadow-[0_0_10px_rgba(59,130,246,0.15)]"
+                : "bg-[#18181b] border border-[#27272a] text-[#71717a] hover:text-[#ededed] hover:border-[#3f3f46]"
+            }`}
+            title="When active, the model calls tools autonomously to inspect contract clauses"
+          >
+            <Compass className="h-3.5 w-3.5 text-[#3b82f6]" />
+            <span>Deep research</span>
+            {isDeepResearch && (
+              <span className="h-1.5 w-1.5 rounded-full bg-[#3b82f6] animate-pulse" />
+            )}
+          </button>
         </div>
-      )}
+      </div>
 
       {/* Input box */}
       <div className="relative flex items-end gap-2 p-2.5 rounded-xl bg-[#121215] border border-[#27272a] focus-within:border-[#3b82f6] focus-within:ring-1 focus-within:ring-[#3b82f6]/40 transition-all shadow-xl">

@@ -187,16 +187,43 @@ export default function ConversationDetailPage({ params }) {
 
   const documentIds = linkedDocs.map((d) => d.id);
 
-  const handleSendQuestion = (questionText, explicitDocIds) => {
+  const [isDeepResearch, setIsDeepResearch] = useState(
+    conversation?.mode === "AGENT"
+  );
+
+  useEffect(() => {
+    if (conversation?.mode === "AGENT") {
+      setIsDeepResearch(true);
+    }
+  }, [conversation?.mode]);
+
+  const handleToggleDeepResearch = async (nextVal) => {
+    setIsDeepResearch(nextVal);
+    if (conversationId) {
+      try {
+        await fetch(`/api/conversations/${conversationId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: nextVal ? "AGENT" : "STANDARD" }),
+        });
+      } catch (e) {
+        // non-fatal
+      }
+    }
+  };
+
+  const handleSendQuestion = (questionText, explicitDocIds, explicitMode) => {
     const targetDocIds =
       Array.isArray(explicitDocIds) && explicitDocIds.length > 0
         ? explicitDocIds
         : documentIds;
 
+    const modeToSend = explicitMode || (isDeepResearch ? "AGENT" : "STANDARD");
+
     sendMessage({
       question: questionText,
       documentIds: targetDocIds,
-      mode: conversation?.mode || "STANDARD",
+      mode: modeToSend,
     });
   };
 
@@ -523,6 +550,8 @@ export default function ConversationDetailPage({ params }) {
               selectedDocs={linkedDocs}
               onSelectDocs={(newDocs) => setActiveDocs(newDocs)}
               allowDocPicker={true}
+              isDeepResearch={isDeepResearch}
+              onToggleDeepResearch={handleToggleDeepResearch}
             />
           </div>
         </div>

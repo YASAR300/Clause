@@ -260,7 +260,7 @@ export function CitationInspector({
             </div>
           </div>
 
-          {citation.documentId && (
+          {citation.documentId && isVerified && (
             <div className="pt-2 border-t border-[#222226] flex justify-end">
               <Button
                 size="sm"
@@ -268,8 +268,14 @@ export function CitationInspector({
                 className="h-7 text-xs gap-1.5 border-[#27272a] text-[#3b82f6] hover:text-[#60a5fa] hover:bg-[#18181b]"
                 asChild
               >
-                <Link href={`/documents?id=${citation.documentId}`}>
-                  View in Library
+                <Link
+                  href={
+                    citation.id
+                      ? `/documents/${citation.documentId}?cite=${citation.id}`
+                      : `/documents/${citation.documentId}`
+                  }
+                >
+                  Open in Document
                   <ExternalLink className="h-3 w-3" />
                 </Link>
               </Button>

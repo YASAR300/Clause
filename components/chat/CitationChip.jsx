@@ -137,7 +137,11 @@ export function CitationChip({ citation, fallbackOrdinal = 1, onInspect }) {
 
           {citation.documentId && isVerified && (
             <Link
-              href={`/documents?id=${citation.documentId}`}
+              href={
+                citation.id
+                  ? `/documents/${citation.documentId}?cite=${citation.id}`
+                  : `/documents/${citation.documentId}`
+              }
               className="inline-flex items-center gap-1 text-[11px] font-medium text-[#3b82f6] hover:text-[#60a5fa] transition-colors"
             >
               Open in document

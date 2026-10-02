@@ -9,7 +9,9 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 export default function AppLayout({ children }) {
   const pathname = usePathname();
-  const isChatDetail = pathname?.startsWith("/chats/") && pathname !== "/chats";
+  const isFullBleed =
+    (pathname?.startsWith("/chats/") && pathname !== "/chats") ||
+    (pathname?.startsWith("/documents/") && pathname !== "/documents");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
@@ -36,7 +38,7 @@ export default function AppLayout({ children }) {
           onOpenSearch={() => setCommandPaletteOpen(true)}
         />
 
-        {isChatDetail ? (
+        {isFullBleed ? (
           <main className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
             {children}
           </main>

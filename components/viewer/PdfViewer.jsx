@@ -29,6 +29,7 @@ import {
  */
 export function PdfViewer({
   documentId,
+  blobUrl,
   documentName = "Contract Document",
   citation = null,
   fullText = "",
@@ -70,7 +71,11 @@ export function PdfViewer({
           pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
         }
 
-        const fileUrl = `/api/documents/${documentId}/file`;
+        const fileUrl = blobUrl || (documentId ? `/api/documents/${documentId}/file` : null);
+        if (!fileUrl) {
+          throw new Error("No PDF source URL or document ID provided.");
+        }
+
         const loadingTask = pdfjs.getDocument({
           url: fileUrl,
           isEvalSupported: false,
@@ -95,7 +100,7 @@ export function PdfViewer({
     return () => {
       isMounted = false;
     };
-  }, [documentId]);
+  }, [documentId, blobUrl]);
 
   // Set up IntersectionObserver for page virtualization
   useEffect(() => {
@@ -286,6 +291,32 @@ export function PdfViewer({
   }
 
   if (error) {
+    if (fullText) {
+      return (
+        <div className="flex h-full flex-col bg-[#0c0c0e] overflow-hidden">
+          <div className="p-2.5 bg-[#f59e0b]/10 border-b border-[#f59e0b]/20 flex items-center justify-between text-xs text-[#f59e0b] px-4 shrink-0">
+            <span className="flex items-center gap-1.5 font-medium">
+              <AlertCircle className="h-3.5 w-3.5" />
+              PDF preview unavailable — viewing extracted contract text
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6 text-xs text-[#d4d4d8] leading-relaxed font-sans whitespace-pre-wrap select-text">
+            {citation?.quoteText && fullText.includes(citation.quoteText) ? (
+              <>
+                <span>{fullText.slice(0, fullText.indexOf(citation.quoteText))}</span>
+                <mark className="bg-[#3b82f6]/30 text-white border-b-2 border-[#3b82f6] px-1 py-0.5 rounded shadow-[0_0_10px_rgba(59,130,246,0.3)] animate-pulse">
+                  {citation.quoteText}
+                </mark>
+                <span>{fullText.slice(fullText.indexOf(citation.quoteText) + citation.quoteText.length)}</span>
+              </>
+            ) : (
+              <span>{fullText}</span>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex h-full flex-col items-center justify-center p-8 text-center bg-[#09090b] space-y-3">
         <AlertCircle className="h-8 w-8 text-[#ef4444]" />

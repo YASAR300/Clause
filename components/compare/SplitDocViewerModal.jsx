@@ -39,14 +39,16 @@ function SinglePaneViewer({ document, quoteText, startOffset }) {
     );
   }
 
-  if (isPdf && document.blobUrl) {
+  if (isPdf && (document.blobUrl || document.id)) {
     const citation = quoteText ? { quoteText, startOffset } : null;
     return (
       <div className="h-full w-full overflow-hidden bg-[#09090b]">
         <PdfViewer
+          documentId={document.id}
           blobUrl={document.blobUrl}
+          documentName={document.name}
           citation={citation}
-          readOnly
+          fullText={document.fullText || ""}
         />
       </div>
     );
@@ -135,17 +137,6 @@ export function SplitDocViewerModal({
             <Badge variant="outline" className="text-[10px] font-mono text-muted">
               {change.category}
             </Badge>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-8 w-8 p-0 text-muted hover:text-text"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </div>
 

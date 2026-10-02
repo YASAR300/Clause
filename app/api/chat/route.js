@@ -320,6 +320,7 @@ export async function POST(request) {
           const enrichedCitation = {
             ...savedCitation,
             documentName: targetDoc.name,
+            docLabel: rawCite.docId,
           };
           verifiedCitations.push(enrichedCitation);
           await sendEvent("citation", enrichedCitation);

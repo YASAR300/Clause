@@ -90,8 +90,8 @@ export function CitationInspector({
       {/* Drawer Header */}
       <div className="flex items-center justify-between p-4 border-b border-[#222226] bg-[#121215]/80 backdrop-blur-md">
         <div className="flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-md bg-[#18181b] border border-[#27272a] flex items-center justify-center font-mono text-xs font-bold text-[#ededed] shadow-inner">
-            [{citation.ordinal}]
+          <div className="h-7 min-w-7 px-1 rounded-md bg-[#18181b] border border-[#27272a] flex items-center justify-center font-mono text-xs font-bold text-[#ededed] shadow-inner">
+            {citation.docLabel ? `${citation.docLabel}:` : ""}{citation.ordinal}
           </div>
           <div>
             <h3 className="text-xs font-semibold text-[#ededed] flex items-center gap-1.5">
@@ -99,7 +99,7 @@ export function CitationInspector({
               <ShieldCheck className="h-3.5 w-3.5 text-[#10b981]" />
             </h3>
             <p className="text-[10px] font-mono text-[#71717a]">
-              Ground-truth character audit
+              {citation.documentName || "Ground-truth character audit"}
             </p>
           </div>
         </div>

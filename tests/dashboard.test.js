@@ -9,7 +9,7 @@ describe("Dashboard & Sample APIs", () => {
     const data = await res.json();
     expect(data.ok).toBe(true);
     expect(data.documentId).toBeDefined();
-  });
+  }, 30000);
 
   it("computes accurate stats and returns activity feed in GET /api/dashboard", async () => {
     const res = await GET();

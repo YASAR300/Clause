@@ -157,6 +157,28 @@ Either party may terminate this Agreement for convenience by providing sixty (60
     expect(res.reason).toBe("found in a different document");
   });
 
+  it("rejects quotes present in D1 but cited as D2 with reason 'found in a different document'", () => {
+    const docD1 = {
+      id: "doc-d1",
+      name: "Contract D1",
+      fullText: "Contractor caps total liability at AED 100,000 under this agreement.",
+      pages: [{ pageNumber: 1, startOffset: 0, endOffset: 80 }],
+    };
+
+    const docD2Text = "This agreement has unlimited liability without any monetary cap whatsoever.";
+    const docD2Pages = [{ pageNumber: 1, startOffset: 0, endOffset: docD2Text.length }];
+
+    // Quote is copied verbatim from D1, but cited against D2 (<cite doc="D2">...)
+    const quotePresentInD1 = "Contractor caps total liability at AED 100,000";
+    const verification = findQuote(docD2Text, docD2Pages, quotePresentInD1, {
+      otherDocuments: [docD1],
+    });
+
+    expect(verification.verified).toBe(false);
+    expect(verification.matchCount).toBe(0);
+    expect(verification.reason).toBe("found in a different document");
+  });
+
   it("rejects quotes shorter than 8 characters", () => {
     const shortQuote = "Payment";
     const res = findQuote(sampleDoc, pages, shortQuote);

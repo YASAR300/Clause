@@ -2,19 +2,21 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, AlertTriangle, ExternalLink, FileText } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ExternalLink, FileText, SearchCode } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 
 /**
  * Inline citation chip component:
  * - Green verified chip with page indicator and quote viewer popover
  * - Amber unverified chip with warning explanation
+ * - Triggers side drawer CitationInspector on demand
  */
-export function CitationChip({ citation, fallbackOrdinal = 1 }) {
+export function CitationChip({ citation, fallbackOrdinal = 1, onInspect }) {
   const [open, setOpen] = useState(false);
 
   if (!citation) {
@@ -30,6 +32,14 @@ export function CitationChip({ citation, fallbackOrdinal = 1 }) {
     citation.pageStart === citation.pageEnd
       ? `p. ${citation.pageStart}`
       : `pp. ${citation.pageStart}–${citation.pageEnd}`;
+
+  const handleInspectClick = (e) => {
+    e.stopPropagation();
+    setOpen(false);
+    if (onInspect) {
+      onInspect(citation);
+    }
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -108,9 +118,24 @@ export function CitationChip({ citation, fallbackOrdinal = 1 }) {
           )}
         </div>
 
-        {/* Action button */}
-        {citation.documentId && isVerified && (
-          <div className="pt-2.5 mt-2.5 border-t border-[#27272a] flex justify-end">
+        {/* Action buttons */}
+        <div className="pt-2.5 mt-2.5 border-t border-[#27272a] flex items-center justify-between gap-2">
+          {onInspect ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleInspectClick}
+              className="h-7 px-2.5 text-[11px] font-medium border-[#27272a] text-[#ededed] hover:bg-[#18181b] gap-1.5"
+            >
+              <SearchCode className="h-3 w-3 text-[#3b82f6]" />
+              Inspect Offsets
+            </Button>
+          ) : (
+            <span />
+          )}
+
+          {citation.documentId && isVerified && (
             <Link
               href={`/documents?id=${citation.documentId}`}
               className="inline-flex items-center gap-1 text-[11px] font-medium text-[#3b82f6] hover:text-[#60a5fa] transition-colors"
@@ -118,8 +143,8 @@ export function CitationChip({ citation, fallbackOrdinal = 1 }) {
               Open in document
               <ExternalLink className="h-3 w-3" />
             </Link>
-          </div>
-        )}
+          )}
+        </div>
       </PopoverContent>
     </Popover>
   );

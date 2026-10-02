@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { processComparison } from "@/lib/compare/pipeline";
+import { completeJob, failJob } from "@/lib/jobs";
 
 const createComparisonSchema = z.object({
   baseDocumentId: z.string().uuid("Valid base document ID required"),
@@ -80,6 +82,7 @@ export async function POST(request) {
         baseDocumentId,
         revisedDocumentId,
         status: "QUEUED",
+        summary: { stage: "Queued for processing", progress: 0 },
       },
       include: {
         baseDocument: { select: { id: true, name: true } },
@@ -87,7 +90,29 @@ export async function POST(request) {
       },
     });
 
-    return NextResponse.json({ ok: true, comparison });
+    const job = await db.job.create({
+      data: {
+        type: "COMPARISON_PROCESS",
+        payload: { comparisonId: comparison.id },
+        status: "QUEUED",
+      },
+    });
+
+    after(async () => {
+      try {
+        await db.job.update({
+          where: { id: job.id },
+          data: { status: "RUNNING", lockedAt: new Date(), attempts: 1 },
+        });
+        await processComparison(comparison.id);
+        await completeJob(job.id);
+      } catch (err) {
+        console.error(`Background comparison error for ${comparison.id}:`, err);
+        await failJob(job.id, err.message);
+      }
+    });
+
+    return NextResponse.json({ ok: true, comparison, jobId: job.id });
   } catch (error) {
     return NextResponse.json(
       { error: { code: "CREATE_FAILED", message: error.message } },

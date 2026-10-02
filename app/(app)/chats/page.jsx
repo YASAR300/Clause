@@ -58,6 +58,17 @@ export default function ChatsPage() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
+  // Auto-redirect if ?id= query param is present
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get("id");
+      if (id) {
+        router.push(`/chats/${id}`);
+      }
+    }
+  }, [router]);
+
   // Dialogs
   const [renameTarget, setRenameTarget] = useState(null);
   const [renameValue, setRenameValue] = useState("");
@@ -153,7 +164,7 @@ export default function ChatsPage() {
       setShowNewChatModal(false);
       setSelectedDocIds([]);
       toast.success("Chat initialized");
-      router.push(`/chats?id=${resData.conversation.id}`);
+      router.push(`/chats/${resData.conversation.id}`);
     } catch (err) {
       toast.error(err.message);
     } finally {
@@ -257,7 +268,7 @@ export default function ChatsPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <Link
-                      href={`/chats?id=${conv.id}`}
+                      href={`/chats/${conv.id}`}
                       className="font-medium text-xs sm:text-sm text-text hover:text-accent transition-colors truncate"
                     >
                       {conv.title}

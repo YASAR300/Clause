@@ -12,10 +12,14 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.trim();
+    const documentId = searchParams.get("documentId")?.trim();
 
     const where = {};
     if (search) {
       where.title = { contains: search, mode: "insensitive" };
+    }
+    if (documentId) {
+      where.documents = { some: { documentId } };
     }
 
     const conversations = await db.conversation.findMany({

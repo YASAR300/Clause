@@ -82,11 +82,11 @@ export function MessageList({
   };
 
   return (
-    <div className="relative flex-1 min-h-0">
+    <div className="relative flex-1 min-h-0 h-full overflow-hidden flex flex-col">
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="h-full overflow-y-auto px-4 py-6 space-y-6 scrollbar-thin"
+        className="flex-1 min-h-0 h-full overflow-y-auto px-4 py-6 space-y-6 scrollbar-thin"
       >
         {messages.map((message) => {
           const isUser = message.role === "USER";

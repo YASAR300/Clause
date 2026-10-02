@@ -293,9 +293,9 @@ export default function ConversationDetailPage({ params }) {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden bg-[#09090b]">
+    <div className="flex flex-1 min-h-0 h-full w-full overflow-hidden bg-[#09090b]">
       {/* Main Chat Workspace Column */}
-      <div className="flex-1 min-w-0 flex flex-col h-full relative">
+      <div className="flex-1 min-w-0 flex flex-col h-full overflow-hidden relative">
         {/* Top Bar Header */}
         <header className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-[#222226] bg-[#0c0c0e]/90 backdrop-blur-md shrink-0 z-20">
           <div className="flex items-center gap-3 min-w-0 flex-1">

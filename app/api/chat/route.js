@@ -12,6 +12,7 @@ import {
 import { buildAnswerMessages } from "@/lib/ai/prompts/answer";
 import { CiteStreamParser } from "@/lib/ai/cite-parser";
 import { findQuote } from "@/lib/verify/quotes";
+import { runAgent } from "@/lib/agent";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -269,6 +270,188 @@ export async function POST(request) {
       userMessageId: userMessage.id,
       assistantMessageId: assistantMessage.id,
     });
+
+    if (mode === "AGENT") {
+      let isStopped = false;
+      let isNotFoundTriggered = false;
+      let cleanTextSoFar = "";
+      const verifiedCitations = [];
+      let agentResult = null;
+
+      const agentDocs = documents.map((d, idx) => ({
+        ...d,
+        label: `D${idx + 1}`,
+      }));
+
+      const parser = new CiteStreamParser({
+        onText: async (delta) => {
+          cleanTextSoFar += delta;
+          await sendEvent("token", { text: delta });
+        },
+        onCitation: async (rawCite) => {
+          const targetDoc = docMap.get(rawCite.docId) || documents[0];
+          const otherDocs = documents
+            .filter((d) => d.id !== targetDoc.id)
+            .map((d) => ({
+              id: d.id,
+              name: d.name,
+              fullText: d.fullText,
+              pages: d.pages,
+            }));
+
+          const verification = findQuote(
+            targetDoc.fullText,
+            targetDoc.pages || [],
+            rawCite.quoteText,
+            { otherDocuments: otherDocs }
+          );
+
+          const firstMatch = verification.matches[0] || {};
+          const retrievedInRun = Boolean(
+            agentResult?.allRetrievedText &&
+            agentResult.allRetrievedText.includes(rawCite.quoteText.trim())
+          );
+
+          const citationRecord = {
+            messageId: assistantMessage.id,
+            documentId: targetDoc.id,
+            ordinal: rawCite.ordinal,
+            quoteText: rawCite.quoteText,
+            verified: verification.verified,
+            matchCount: verification.matchCount,
+            startOffset: firstMatch.start ?? 0,
+            endOffset: firstMatch.end ?? 0,
+            pageStart: firstMatch.pageStart ?? 1,
+            pageEnd: firstMatch.pageEnd ?? 1,
+            allMatches: {
+              matches: verification.matches,
+              retrievedInRun,
+            },
+            failureReason: verification.reason,
+          };
+
+          try {
+            const savedCitation = await db.citation.create({
+              data: citationRecord,
+            });
+            const enrichedCitation = {
+              ...savedCitation,
+              documentName: targetDoc.name,
+              docLabel: rawCite.docId,
+              retrievedInRun,
+            };
+            verifiedCitations.push(enrichedCitation);
+            await sendEvent("citation", enrichedCitation);
+          } catch (dbErr) {
+            console.error("Failed to save citation:", dbErr.message);
+          }
+        },
+        onNotFound: async () => {
+          isNotFoundTriggered = true;
+          await sendEvent("notFound", { notFound: true });
+        },
+      });
+
+      // Abort handler for STOP button / client disconnect
+      request.signal?.addEventListener("abort", async () => {
+        isStopped = true;
+        try {
+          await db.message.update({
+            where: { id: assistantMessage.id },
+            data: {
+              content: cleanTextSoFar,
+              status: "STOPPED",
+              toolTrace: agentResult?.toolTrace || [],
+              coverage: agentResult?.coverage || null,
+            },
+          });
+        } catch {}
+        try {
+          await writer.close();
+        } catch {}
+      });
+
+      try {
+        agentResult = await runAgent({
+          question,
+          documents: agentDocs,
+          history: formattedHistory,
+          signal: request.signal,
+          onEvent: sendEvent,
+        });
+
+        if (isStopped || request.signal?.aborted) return;
+
+        if (agentResult.coverage) {
+          await sendEvent("coverage", agentResult.coverage);
+        }
+
+        const rawContent = agentResult.rawContent || "";
+        const tokenChunks = rawContent.match(/([^\s]+|\s+)/g) || [rawContent];
+        for (const chunk of tokenChunks) {
+          if (isStopped || request.signal?.aborted) break;
+          parser.feed(chunk);
+          await new Promise((r) => setTimeout(r, 6));
+        }
+
+        if (!isStopped && !request.signal?.aborted) {
+          const finalResult = parser.end();
+          let finalContent = finalResult.cleanText || cleanTextSoFar;
+          finalContent = guardAbsenceClaims(finalContent, agentResult.coverage);
+
+          await db.message.update({
+            where: { id: assistantMessage.id },
+            data: {
+              content: finalContent,
+              status: "COMPLETE",
+              coverage: agentResult.coverage,
+              toolTrace: agentResult.toolTrace,
+            },
+          });
+
+          await db.conversation.update({
+            where: { id: conversationId },
+            data: { mode: "AGENT", updatedAt: new Date() },
+          });
+
+          await sendEvent("done", {
+            messageId: assistantMessage.id,
+            content: finalContent,
+            citations: verifiedCitations,
+            coverage: agentResult.coverage,
+            toolTrace: agentResult.toolTrace,
+            isNotFound: isNotFoundTriggered,
+          });
+        }
+      } catch (err) {
+        if (!isStopped) {
+          const errorPayload = {
+            code: err.code || "AGENT_ERROR",
+            message:
+              err.uiMessage ||
+              err.message ||
+              "An error occurred during deep research.",
+          };
+          try {
+            await db.message.update({
+              where: { id: assistantMessage.id },
+              data: {
+                content: cleanTextSoFar,
+                status: "ERROR",
+                toolTrace: agentResult?.toolTrace || [],
+                coverage: agentResult?.coverage || null,
+              },
+            });
+          } catch {}
+          await sendEvent("error", errorPayload);
+        }
+      } finally {
+        try {
+          await writer.close();
+        } catch {}
+      }
+      return;
+    }
 
     await sendEvent("coverage", combinedCoverage);
 

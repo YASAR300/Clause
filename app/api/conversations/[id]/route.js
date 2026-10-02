@@ -4,10 +4,12 @@ import { db } from "@/lib/db";
 
 const updateSchema = z.object({
   title: z
-    .string({ required_error: "Title is required" })
+    .string()
     .trim()
     .min(1, "Title cannot be empty")
-    .max(255, "Title is too long"),
+    .max(255, "Title is too long")
+    .optional(),
+  mode: z.enum(["STANDARD", "AGENT"]).optional(),
 });
 
 export async function GET(_request, { params }) {
@@ -66,9 +68,13 @@ export async function PATCH(request, { params }) {
       );
     }
 
+    const updateData = {};
+    if (result.data.title !== undefined) updateData.title = result.data.title;
+    if (result.data.mode !== undefined) updateData.mode = result.data.mode;
+
     const updated = await db.conversation.update({
       where: { id },
-      data: { title: result.data.title },
+      data: updateData,
     });
 
     return NextResponse.json({ ok: true, conversation: updated });

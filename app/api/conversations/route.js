@@ -102,8 +102,9 @@ export async function POST(request) {
         title: defaultTitle,
         mode,
         documents: {
-          create: documentIds.map((docId) => ({
+          create: documentIds.map((docId, idx) => ({
             documentId: docId,
+            label: `D${idx + 1}`,
           })),
         },
       },
@@ -111,7 +112,7 @@ export async function POST(request) {
         documents: {
           include: {
             document: {
-              select: { id: true, name: true },
+              select: { id: true, name: true, status: true, pageCount: true },
             },
           },
         },
@@ -124,7 +125,10 @@ export async function POST(request) {
         id: conversation.id,
         title: conversation.title,
         mode: conversation.mode,
-        documents: conversation.documents.map((d) => d.document),
+        documents: conversation.documents.map((d) => ({
+          ...d.document,
+          label: d.label,
+        })),
       },
     });
   } catch (error) {

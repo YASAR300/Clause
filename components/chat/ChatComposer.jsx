@@ -13,6 +13,7 @@ import {
   Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DocumentPicker } from "@/components/chat/DocumentPicker";
 
 const CATEGORIZED_PROMPTS = [
   {
@@ -49,6 +50,9 @@ export function ChatComposer({
   disabledReason = "",
   showSuggestions = false,
   suggestions,
+  selectedDocs = [],
+  onSelectDocs,
+  allowDocPicker = false,
 }) {
   const [input, setInput] = useState("");
   const textareaRef = useRef(null);
@@ -76,7 +80,8 @@ export function ChatComposer({
     const trimmed = input.trim();
     if (!trimmed) return;
 
-    onSend(trimmed);
+    const docIds = selectedDocs.length > 0 ? selectedDocs.map((d) => d.id) : undefined;
+    onSend(trimmed, docIds);
     setInput("");
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -85,7 +90,8 @@ export function ChatComposer({
 
   const handleSelectSuggestion = (promptText) => {
     if (disabled || isStreaming) return;
-    onSend(promptText);
+    const docIds = selectedDocs.length > 0 ? selectedDocs.map((d) => d.id) : undefined;
+    onSend(promptText, docIds);
   };
 
   return (
@@ -137,6 +143,22 @@ export function ChatComposer({
         <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#f59e0b]/10 border border-[#f59e0b]/20 text-xs text-[#f59e0b]">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{disabledReason}</span>
+        </div>
+      )}
+
+      {/* Document Picker Row */}
+      {allowDocPicker && (
+        <div className="flex items-center justify-between gap-2 px-1">
+          <DocumentPicker
+            selectedDocs={selectedDocs}
+            onChange={onSelectDocs}
+            disabled={disabled || isStreaming}
+          />
+          {selectedDocs.length > 1 && (
+            <span className="text-[10px] font-mono text-[#3b82f6] bg-[#3b82f6]/10 px-1.5 py-0.5 rounded border border-[#3b82f6]/20 shrink-0">
+              Multi-doc compare mode
+            </span>
+          )}
         </div>
       )}
 

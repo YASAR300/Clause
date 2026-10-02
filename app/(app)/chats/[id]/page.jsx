@@ -62,7 +62,23 @@ export default function ConversationDetailPage({ params }) {
 
   const conversation = data?.conversation;
   const initialMessages = conversation?.messages || [];
-  const linkedDocs = conversation?.documents?.map((d) => d.document) || [];
+
+  const initialDocs = useMemo(() => {
+    return (conversation?.documents || []).map((cd, idx) => ({
+      ...(cd.document || {}),
+      label: cd.label || `D${idx + 1}`,
+    }));
+  }, [conversation]);
+
+  const [activeDocs, setActiveDocs] = useState([]);
+
+  useEffect(() => {
+    if (initialDocs.length > 0 && activeDocs.length === 0) {
+      setActiveDocs(initialDocs);
+    }
+  }, [initialDocs]);
+
+  const linkedDocs = activeDocs.length > 0 ? activeDocs : initialDocs;
 
   const dynamicSuggestions = useMemo(() => {
     return getDocumentAuditQueries(linkedDocs);
@@ -171,10 +187,15 @@ export default function ConversationDetailPage({ params }) {
 
   const documentIds = linkedDocs.map((d) => d.id);
 
-  const handleSendQuestion = (questionText) => {
+  const handleSendQuestion = (questionText, explicitDocIds) => {
+    const targetDocIds =
+      Array.isArray(explicitDocIds) && explicitDocIds.length > 0
+        ? explicitDocIds
+        : documentIds;
+
     sendMessage({
       question: questionText,
-      documentIds,
+      documentIds: targetDocIds,
       mode: conversation?.mode || "STANDARD",
     });
   };
@@ -296,18 +317,23 @@ export default function ConversationDetailPage({ params }) {
 
               {/* Linked documents chips */}
               <div className="flex items-center gap-2 mt-0.5 overflow-x-auto text-[11px] text-[#71717a]">
-                <span className="shrink-0 text-[#52525b]">Contract:</span>
-                {linkedDocs.map((doc) => (
+                <span className="shrink-0 text-[#52525b]">
+                  {linkedDocs.length > 1 ? "Contracts:" : "Contract:"}
+                </span>
+                {linkedDocs.map((doc, idx) => (
                   <Link
-                    key={doc.id}
-                    href={`/documents?id=${doc.id}`}
-                    className="inline-flex items-center gap-1 text-[#a1a1aa] hover:text-[#3b82f6] transition-colors truncate max-w-[220px]"
+                    key={doc.id || idx}
+                    href={`/documents/${doc.id}`}
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#16161a] border border-[#27272a] text-[#a1a1aa] hover:text-[#3b82f6] hover:border-[#3b82f6]/40 transition-colors truncate max-w-[240px]"
+                    title={doc.name}
                   >
-                    <FileText className="h-3 w-3 shrink-0 text-[#3b82f6]" />
+                    <span className="font-mono text-[10px] font-semibold text-[#3b82f6]">
+                      {doc.label || `D${idx + 1}`}
+                    </span>
                     <span className="truncate">{doc.name}</span>
                     {doc.pageCount && (
                       <span className="text-[10px] text-[#71717a] font-mono shrink-0">
-                        ({doc.pageCount} p.)
+                        ({doc.pageCount}p)
                       </span>
                     )}
                   </Link>
@@ -494,6 +520,9 @@ export default function ConversationDetailPage({ params }) {
               disabledReason={unreadyReason}
               showSuggestions={messages.length > 0}
               suggestions={dynamicSuggestions}
+              selectedDocs={linkedDocs}
+              onSelectDocs={(newDocs) => setActiveDocs(newDocs)}
+              allowDocPicker={true}
             />
           </div>
         </div>

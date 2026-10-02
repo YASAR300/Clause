@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { streamChat, completeJson, getAiModel } from "@/lib/ai/client";
+import { getContextBudget } from "@/lib/ai/budget";
 import { executeStrategy } from "@/lib/retrieval/strategy";
 import {
   createCoverageObject,
@@ -38,14 +39,21 @@ function mergeMultipleCoverages(docCoverages, totalDocs) {
   let hasRetrieval = false;
   let allComplete = true;
 
-  for (const { docId, coverage, pageCount } of docCoverages) {
+  for (const { docId, docLabel, name, coverage, pageCount } of docCoverages) {
     totalChunks += coverage.totalChunks || 0;
     chunksRead += coverage.chunksRead || 0;
     totalPages += pageCount || coverage.totalPages || 1;
     allPageRanges.push(...(coverage.pagesRead || []));
     failedChunks.push(...(coverage.failedChunks || []));
     emptyPages.push(...(coverage.emptyPages || []));
-    perDocument[docId] = coverage;
+
+    const key = docLabel || docId;
+    perDocument[key] = {
+      ...coverage,
+      docId,
+      label: key,
+      name,
+    };
 
     if (coverage.mode === "exhaustive") hasExhaustive = true;
     if (coverage.mode === "retrieval") hasRetrieval = true;
@@ -108,7 +116,10 @@ export async function POST(request) {
         title: initialTitle,
         mode,
         documents: {
-          create: documentIds.map((docId) => ({ documentId: docId })),
+          create: documentIds.map((docId, idx) => ({
+            documentId: docId,
+            label: `D${idx + 1}`,
+          })),
         },
       },
     });
@@ -168,7 +179,10 @@ export async function POST(request) {
     );
   }
 
-  // 5. Execute retrieval strategies across documents
+  // 5. Execute retrieval strategies across documents with fair budget splitting
+  const totalBudget = getContextBudget();
+  const perDocBudget = Math.max(3000, Math.floor(totalBudget / documents.length));
+
   const docCoverages = [];
   const labeledDocs = [];
   const docMap = new Map(); // e.g. "D1" -> doc
@@ -181,17 +195,21 @@ export async function POST(request) {
     const stratResult = await executeStrategy({
       document: doc,
       question,
+      budget: perDocBudget,
       signal: request.signal,
     });
 
     docCoverages.push({
       docId: doc.id,
+      docLabel,
+      name: doc.name,
       coverage: stratResult.coverage,
       pageCount: doc.pageCount || 1,
     });
 
     labeledDocs.push({
       id: doc.id,
+      docLabel,
       name: doc.name,
       contextText: stratResult.contextText,
     });

@@ -157,7 +157,7 @@ export default function DocumentsPage() {
         throw new Error(data.error?.message || "Failed to start conversation");
       }
       toast.success("Conversation created");
-      router.push(`/chats?id=${data.conversation.id}`);
+      router.push(`/chats/${data.conversation.id}`);
     } catch (err) {
       toast.error(err.message);
     } finally {

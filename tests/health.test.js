@@ -1,5 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { GET } from "@/app/api/health/route";
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    $queryRaw: vi.fn().mockResolvedValue([{ "?column?": 1 }]),
+  },
+}));
 
 describe("GET /api/health", () => {
   it("returns ok: true when database is healthy", async () => {

@@ -1,5 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { POST } from "@/app/api/contact/route";
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    contactMessage: {
+      create: vi.fn().mockResolvedValue({ id: "mock-id" }),
+    },
+  },
+}));
 
 describe("POST /api/contact", () => {
   it("rejects invalid contact payloads", async () => {

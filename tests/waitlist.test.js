@@ -1,5 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { POST } from "@/app/api/waitlist/route";
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    waitlistEntry: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({ id: "mock-id", email: "test@example.com" }),
+    },
+  },
+}));
 
 describe("POST /api/waitlist", () => {
   it("rejects invalid emails with validation error", async () => {

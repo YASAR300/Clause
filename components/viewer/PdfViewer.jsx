@@ -57,6 +57,11 @@ export function PdfViewer({
   const [activeMatchIndex, setActiveMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(1);
 
+  // Track whether we're waiting for a text layer to apply a pending citation.
+  // Incrementing highlightTrigger forces the highlight effect to re-run.
+  const pendingCitationRef = useRef(false);
+  const [highlightTrigger, setHighlightTrigger] = useState(0);
+
   // Load PDF Document
   useEffect(() => {
     let isMounted = true;
@@ -141,6 +146,11 @@ export function PdfViewer({
   // Text layer registration callback from child PdfPage
   const handleTextLayerReady = useCallback((pageNum, textLayerDiv) => {
     textLayersMapRef.current.set(pageNum, textLayerDiv);
+    // If there's a pending citation waiting for any text layer, re-run the highlight
+    if (pendingCitationRef.current) {
+      pendingCitationRef.current = false;
+      setHighlightTrigger((t) => t + 1);
+    }
   }, []);
 
   // Compute and display citation highlights
@@ -164,12 +174,14 @@ export function PdfViewer({
     });
 
     if (isCrossPage) {
-      // Cross-page quote
+      // Cross-page quote: include pageContainerEl so cross-page.js uses it as the
+      // coordinate origin, matching the HighlightOverlay's absolute-position context.
       const pagesToLocate = [];
       for (let p = pageStart; p <= pageEnd; p++) {
         const container = textLayersMapRef.current.get(p);
         if (container) {
-          pagesToLocate.push({ pageNumber: p, container });
+          const pageContainerEl = document.getElementById(`page-container-${p}`);
+          pagesToLocate.push({ pageNumber: p, container, pageContainerEl });
         }
       }
 
@@ -189,6 +201,13 @@ export function PdfViewer({
         const rects = result.pageHighlights.get(result.firstPage);
         if (firstPageEl && rects?.length) {
           scrollHighlightIntoView(firstPageEl, rects, scrollContainerRef.current);
+          // After scroll settles, recompute rects to correct any getBoundingClientRect drift
+          setTimeout(() => {
+            const freshResult = locateCrossPageInDom(pagesToLocate, quoteText);
+            if (freshResult.matchFound) {
+              setHighlightsByPage(freshResult.pageHighlights);
+            }
+          }, 350);
         }
       } else {
         setHighlightFailed(true);
@@ -199,8 +218,10 @@ export function PdfViewer({
       const container = textLayersMapRef.current.get(targetPage);
 
       if (!container) {
-        // Retry after short tick when textLayer finishes mounting
-        setTimeout(applyCitationHighlight, 150);
+        // Mark as pending and retry — the text layer ready callback will also
+        // trigger a re-render once the layer is available.
+        pendingCitationRef.current = true;
+        setTimeout(applyCitationHighlight, 300);
         return;
       }
 
@@ -214,16 +235,38 @@ export function PdfViewer({
         const matchIdx = Math.min(activeMatchIndex, matches.length - 1);
         const activeMatch = matches[matchIdx];
 
-        const rects = getHighlightRects(activeMatch.range, container);
+        // Use the page container element as coordinate origin so that highlight
+        // rects align with HighlightOverlay which is absolute-positioned inside it.
+        const pageContainerEl = document.getElementById(`page-container-${targetPage}`);
+        const coordOrigin = pageContainerEl || container;
+        const rects = getHighlightRects(activeMatch.range, coordOrigin);
         const newMap = new Map();
         newMap.set(targetPage, rects);
 
         setHighlightsByPage(newMap);
         setHighlightFailed(false);
 
+        // Scroll page into view first
         const pageEl = document.getElementById(`page-container-${targetPage}`);
         if (pageEl && rects.length > 0) {
           scrollHighlightIntoView(pageEl, rects, scrollContainerRef.current);
+          // After the smooth scroll settles (~300ms), recompute rects so that
+          // getBoundingClientRect returns final-position values.
+          setTimeout(() => {
+            const freshMatches = locateInDom(container, quoteText, {
+              findAll: true,
+              hintOffset: startOffset,
+            });
+            if (freshMatches.length > 0) {
+              const freshMatch = freshMatches[Math.min(activeMatchIndex, freshMatches.length - 1)];
+              const freshRects = getHighlightRects(freshMatch.range, coordOrigin);
+              if (freshRects.length > 0) {
+                const freshMap = new Map();
+                freshMap.set(targetPage, freshRects);
+                setHighlightsByPage(freshMap);
+              }
+            }
+          }, 350);
         }
       } else {
         setHighlightFailed(true);
@@ -231,10 +274,10 @@ export function PdfViewer({
     }
   }, [citation, activeMatchIndex]);
 
-  // Trigger highlight calculation when citation or zoom changes
+  // Trigger highlight calculation when citation, zoom, or highlightTrigger changes
   useEffect(() => {
     applyCitationHighlight();
-  }, [citation, zoom, applyCitationHighlight]);
+  }, [citation, zoom, highlightTrigger, applyCitationHighlight]);
 
   // Keyboard dismiss (Escape)
   useEffect(() => {

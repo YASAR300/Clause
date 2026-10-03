@@ -1,65 +1,19 @@
-﻿# Engineering Notes
+# Engineering Note
 
-## Architecture Overview
+## How quote verification works, and where it fails
 
-Clause is a Next.js 14 application that ingests contract documents (PDF / DOCX), splits them into chunks, stores embeddings in Neon Postgres with pgvector, and answers questions using Gemini via streaming.
+The model wraps every quote in a `<cite doc="Dx">` tag. `lib/verify/quotes.js` normalises both the document and the quote through the same pipeline — NFKC, ligature expansion, curly-to-straight quotes and dashes, soft-hyphen removal, hyphenated-word joining across line breaks, whitespace collapsing, lowercase — and builds a character-level index mapping each normalised position to its original offset. I search the normalised quote inside the normalised document and recover offsets from that index; page numbers come from a binary search on the stored page-offset table. A whitespace-stripped second pass retries when the first finds nothing. A paraphrase is never fuzzy-matched into a pass.
 
-### Key design decisions
+Failure modes: verified means the text exists verbatim, not that it supports the claim; quotes under 8 normalised characters are rejected; multi-column pages extract in scrambled order so a genuine quote can span non-adjacent characters; numbers written differently (`AED 100,000` vs `AED 100000`) are rejected rather than reconciled.
 
-**Ingestion pipeline** (`lib/extract/pipeline.js`)
-- PDF text extracted with `pdf-parse`; DOCX with `mammoth`
-- Text split into ~800-token chunks with 100-token overlap
-- Each chunk embedded with `text-embedding-004` and stored in `document_chunks(embedding vector(768))`
-- Scanned PDFs yield < 100 characters of text and are flagged `status = 'unreadable'` without storing chunks
+## How large documents are handled
 
-**Chat and retrieval** (`app/api/chat/route.js`)
-- Top-8 chunks retrieved by cosine similarity for each turn
-- Context budget of ~12 000 tokens; if chunks exceed the budget the excess is dropped and a coverage warning is appended to the answer
-- Streaming uses Vercel AI SDK `streamText`; the client accumulates partial tokens and can abort mid-stream
+Chunks target 3,500 characters (hard cap 5,000) with 300-character overlap on mid-clause splits and the invariant `fullText.slice(startOffset, endOffset) === chunk.text`. The strategy router picks `whole` when the document fits within 60,000 characters, `retrieval` (FTS with ILIKE fallback) for targeted questions, or `exhaustive` map-reduce at concurrency 4 for existence and list-all questions. The absence guardrail is enforced in code: `lib/retrieval/coverage.js` pattern-matches the response for phrases like "does not contain" and, if coverage is partial, prepends a deterministic notice naming which sections were read and stating that absence cannot be confirmed.
 
-**Citation verification** (`lib/verify.js`)
-- Each quoted passage is normalised (collapse whitespace, strip punctuation) and fuzzy-matched against the source chunk
-- Similarity >= 0.85 → Verified; below threshold → Unverified
-- The inspector shows the raw chunk text alongside the cited quote so the user can judge discrepancies
+## Part C: agentic document research
 
-**Large document handling**
-- 150-page documents produce ~400+ chunks
-- The retrieval window (top-8) intentionally covers only the most relevant sections
-- The system prompt instructs the model to say "not found in the reviewed sections" rather than "does not exist" when confidence is low
-- There is **no guarantee of full-document coverage per query**; this is a stated limitation
+I chose Option 2 because it reuses the retrieval and verification layers already built, and reliable OOXML tracked-change generation was harder to scope in the time available. The loop in `lib/agent/run.js` caps at 6 rounds, 16 total tool calls, 4 per round, and 2 minutes wall-clock. Five tools are registered: `list_clauses`, `search_document`, `get_section`, `get_pages`, `list_documents`. Arguments are Zod-validated; unknown names, invalid JSON, and bad document IDs return structured errors without crashing. Three consecutive invalid calls force a final answer. The activity timeline streams per-round and per-tool events over SSE and works. Stop aborts the `AbortSignal` through every call; partial text is saved with status `STOPPED`. The hardest part was bounding the loop against models that invent tool names or emit malformed arguments while keeping verification intact.
 
-**Rate limiting** (`lib/rate-limit.js`)
-- In-memory sliding-window limiter keyed by IP
-- `/api/chat`: 20 req / min; `/api/upload`: 10 req / min
-- Returns HTTP 429 with `Retry-After` header
+## What I would build next
 
-**Background sweep** (`app/api/jobs/sweep/route.js`)
-- Cron job (configured in `vercel.json`) re-queues stuck `processing` documents older than 10 minutes
-- Uses `FOR UPDATE SKIP LOCKED` so concurrent invocations do not double-process
-
-## Known Limitations
-
-1. **Scanned PDFs** — OCR is not implemented. Documents with no selectable text are rejected.
-2. **Tables and figures** — `pdf-parse` returns tables as unstructured text; complex layouts may parse poorly.
-3. **Rate limiter is in-memory** — Resets on cold start; does not share state across Vercel serverless instances. A Redis-backed limiter would be needed for production-scale deployments.
-4. **Embedding model dimensions** — `text-embedding-004` produces 768-d vectors. Changing the model requires re-embedding all stored chunks.
-5. **Context window** — Very long answers or documents with dense cross-references may hit the 12 000-token context budget, triggering the partial-coverage warning.
-
-## Database Schema (abbreviated)
-
-```
-documents        id, user_id, title, status, file_path, created_at
-document_chunks  id, document_id, chunk_index, content, embedding vector(768)
-conversations    id, document_id, title, created_at
-messages         id, conversation_id, role, content, citations jsonb, created_at
-```
-
-## Environment Variables Required
-
-```
-DATABASE_URL          Neon Postgres connection string (pooled)
-GEMINI_API_KEY        Google AI Studio key
-NEXT_PUBLIC_APP_URL   Canonical URL for the deployment
-```
-
-See `.env.example` for the full list.
+OCR for scanned PDFs, because the extractor rejects documents below 25 average characters per page and there is no fallback. Table-aware and multi-column extraction, because `pdfjs-dist` interleaves column text and scrambles cross-column quotes. Semantic embedding search, because `websearch_to_tsquery` misses synonyms and paraphrased headings. A per-claim support check that tests whether a verified quote entails the model's conclusion, because verified currently means only that the text exists.

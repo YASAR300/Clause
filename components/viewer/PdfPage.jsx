@@ -100,6 +100,10 @@ export function PdfPage({
           textLayerDiv.style.width = `${scaledW}px`;
           textLayerDiv.style.height = `${scaledH}px`;
           textLayerDiv.style.setProperty("--scale-factor", `${zoom}`);
+          textLayerDiv.style.setProperty("--user-unit", "1");
+          textLayerDiv.style.setProperty("--total-scale-factor", `${zoom}`);
+          textLayerDiv.style.setProperty("--scale-round-x", "1px");
+          textLayerDiv.style.setProperty("--scale-round-y", "1px");
 
           const textContent = await page.getTextContent();
           if (!isMounted) return;
@@ -151,8 +155,13 @@ export function PdfPage({
       style={{
         width: `${pageWidth}px`,
         minHeight: `${pageHeight}px`,
+        "--scale-factor": `${zoom}`,
+        "--user-unit": "1",
+        "--total-scale-factor": `${zoom}`,
+        "--scale-round-x": "1px",
+        "--scale-round-y": "1px",
       }}
-      className="relative mx-auto my-4 bg-white shadow-2xl rounded-sm transition-all duration-150 select-text overflow-hidden"
+      className="page relative mx-auto my-4 bg-white shadow-2xl rounded-sm select-text overflow-hidden"
     >
       {/* Canvas Layer */}
       <canvas ref={canvasRef} className="block w-full h-auto" />
@@ -160,8 +169,13 @@ export function PdfPage({
       {/* Selectable TextLayer */}
       <div
         ref={textLayerRef}
-        className="pdf-text-layer absolute inset-0 text-transparent select-text leading-none pointer-events-auto"
+        className="textLayer absolute inset-0 select-text pointer-events-auto"
         style={{
+          "--scale-factor": `${zoom}`,
+          "--user-unit": "1",
+          "--total-scale-factor": `${zoom}`,
+          "--scale-round-x": "1px",
+          "--scale-round-y": "1px",
           lineHeight: "1",
         }}
       />

@@ -187,6 +187,7 @@ export function PdfViewer({
 
       if (pagesToLocate.length < (pageEnd - pageStart + 1)) {
         // Wait until all cross-page layers finish rendering
+        pendingCitationRef.current = true;
         setTimeout(applyCitationHighlight, 150);
         return;
       }
@@ -496,7 +497,10 @@ export function PdfViewer({
       {/* Virtualized Page Scroll Stream */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin"
+        className="pdfViewer flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-thin"
+        style={{
+          "--scale-factor": `${zoom}`,
+        }}
         tabIndex={0}
       >
         {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => {
